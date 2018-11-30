@@ -116,6 +116,7 @@ lm_simple <- function(formula, data) {
 #' @param DT a \code{data.table} to analyse
 #' @param formula a standard R formula specifying which columns to use
 #' @return A named list (int, slope, p, rsq) for the segment with maximum slope
+#' @export
 #'
 
 slope_auto <- function(DT, formula) {

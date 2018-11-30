@@ -74,11 +74,14 @@ id_parts <- c("filename", "sample", "specimen")
 # returns a data.table with the parameter: value pairs and
 # the location of the end of the header (0 is there was no header)
 # this last can be passed to instron.data to indicate where the data starts
+#' @import data.table
+#' @export bh_read_header
+
 bh_read_header <- function(filename) {
   # check filename for an instron header & process if there is one
   max_header <- 100 # assume that any header is <= 100 lines
   header <- fread(filename, blank.lines.skip = FALSE, sep = NULL,
-                  header = FALSE, nrow = max_header)
+                  header = FALSE, nrows = max_header)
   blank_row <- header[, which(V1 == "")]
   # get the column headers from the first row after the blank line
   # or the first row if blank_row == 0
@@ -117,7 +120,7 @@ bh_read_header <- function(filename) {
 bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 
   col_names <- names(fread(filename, blank.lines.skip = TRUE,
-                        skip = blank_row, nrow = 1))
+                        skip = blank_row, nrows = 1))
   select_cols <- seq_along(col_names)
 
   if (min_results) {
@@ -144,7 +147,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
   col_names <- names(
     fread(filename, blank.lines.skip = TRUE,
-          skip = blank_row, nrow = 1)
+          skip = blank_row, nrows = 1)
   )
   use_col_nums <- seq_along(col_names) # start with all columns
 
@@ -245,22 +248,4 @@ bh_label_samples <- function(samples, headers) {
 # to change them from Tensile (as these two channels always are) to Compressive
 bh_make_compressive <- function(sample_data) {
   sample_data[, `:=`(Extension = -Extension, Load = -Load)]
-}
-
-#' Calculate the slope(modulus) of a data series using the Bluehill algorithm
-#' Essentially:
-#'   divide the span from \code{min(y)} to \code{max(y)} into 5 segments
-#'   calculate the slope of each segment
-#'   find the pair of segments with the highest average slope
-#'   combine those segments and recalcuate the slope for the both together
-#'
-#' @param x a vector of ordinate data (often time or extension)
-#' @param y a vector of abcissa data
-#' @return the highest average slope(modulus) of \code{y/x}
-#' @examples
-#' stiffness <- bh_modulus(Extension, Load)
-#' @export
-
-bh_modulus <- function(x, y, intervals = 5) {
-  segment
 }
