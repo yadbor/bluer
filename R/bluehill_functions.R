@@ -1,11 +1,5 @@
 # Functions to work with Instron Bluehill 2.0 RawData .csv files
 
-# load useful libraries. Maybe tidyverse would be a better choice?
-#library(data.table)
-#library(stringr)
-
-##source("utility_functions.R")
-
 # Bluehill works with samples (created when you start a test) containing specimens
 # The user chooses a sample name and a folder in which to save the sample & results (the study folder)
 #
@@ -71,7 +65,8 @@ raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
 # regex to extract rough test name and specimen ID
 # i.e. the name of the Sample folder, which is the last part of the pathname of
 # a RawData folder (minus Instron decoration) and the number of each Specimen file
-id_regex <- paste0(".*", .Platform$file.sep, "(.+).is_.+_RawData.*Specimen_RawData\\_(\\d+)\\.csv")
+id_regex <- paste0(".*", .Platform$file.sep,
+                   "(.+).is_.+_RawData.*Specimen_RawData\\_(\\d+)\\.csv")
 id_parts <- c("filename", "sample", "specimen")
 
 # read any header in the given RawData file
@@ -83,7 +78,7 @@ bh_read_header <- function(filename) {
   # check filename for an instron header & process if there is one
   max_header <- 100 # assume that any header is <= 100 lines
   header <- fread(filename, blank.lines.skip = FALSE, sep = NULL,
-                  header = FALSE, nrow = max.header)
+                  header = FALSE, nrow = max_header)
   blank_row <- header[, which(V1 == "")]
   # get the column headers from the first row after the blank line
   # or the first row if blank_row == 0
@@ -94,7 +89,7 @@ bh_read_header <- function(filename) {
     # header rows have up to 4 parts
     # type : var.name, value, units
     # so split on ' : ' or ',' (can't use ':' as times have colons)
-    header <- header[1:blank_row-1, tstrsplit(V1, split = c(" : |,"))]
+    header <- header[1:blank_row - 1, tstrsplit(V1, split = c(" : |,"))]
   } else {
     # no blank line means there was no header, so make an empty one
     header <- data.table()
@@ -121,14 +116,12 @@ bh_read_header <- function(filename) {
 # returns a data.table with the column headers and the data columns as per the RawData file
 bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 
-  col_names <- names(
-                  fread(filename, blank.lines.skip = TRUE,
-                        skip = blank_row, nrow = 1)
-                  )
+  col_names <- names(fread(filename, blank.lines.skip = TRUE,
+                        skip = blank_row, nrow = 1))
   select_cols <- seq_along(col_names)
 
   if (min_results) {
-    min_columns <- c('Time', 'Extension', 'Load')
+    min_columns <- c("Time", "Extension", "Load")
     # throw an error unless the minimal column set is in the file
     all_in_header <- all(min_columns %chin% col_names)
     select_cols <- which(min_columns %chin% col_names)
@@ -139,12 +132,13 @@ bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
   # there are two rows of header (var name then units)
   # so the actual data starts 3 rows below the blank line/start of file
   first_data_row <- blank_row + 3
-  data <- fread(filename, blank.lines.skip = TRUE, skip = first_data_row, select = select_cols)
+  data <- fread(filename, blank.lines.skip = TRUE,
+                skip = first_data_row, select = select_cols)
   setnames(data, col_names)
   return(data)
 }
 
-bh_min_columns <- c('Time', 'Extension', 'Load')
+bh_min_columns <- c("Time", "Extension", "Load")
 
 bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
@@ -168,7 +162,8 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
   # there are two rows of header (var name then units)
   # so the actual data starts 3 rows below the blank line/start of file
   first_data_row <- blank_row + 3
-  data <- fread(filename, blank.lines.skip = TRUE, skip = first_data_row, select = use_col_nums)
+  data <- fread(filename, blank.lines.skip = TRUE,
+                skip = first_data_row, select = use_col_nums)
   setnames(data, col_names)
   return(data)
 }
@@ -194,7 +189,7 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
                       ignore.case = TRUE)
 
   samples <- as.data.table(str_match(files, id_regex))
-  samples <- na.omit(samples) # drop non-matched results files
+  samples <- stats::na.omit(samples) # drop non-matched results files
   # name the parts extracted by the identifier regex
   # (plus the filename which str_match returns first)
   setnames(samples, id_parts)
@@ -210,31 +205,31 @@ bh_get_headers <- function(samples) {
   # load all the headers, which incldue the data start row
   headers <- samples[, bh_read_header(filename), by = filename]
   # will be getting info by filename, so set that as the key
-  # also set 'var', so can index by headers[J(filename, "blank_row"),]
+  # also set "var", so can index by headers[J(filename, "blank_row"),]
   setkey(headers, filename, var)
-  # it turns out that the 'Specimen label' values has quotes in the field
+  # it turns out that the "Specimen label" values has quotes in the field
   # strip any quotes as we don't want them anywhere
   headers[, value := str_remove_all(value, "\"")]
 }
 
 # early version of extracting the blank_row and label from the header
-bh_header_parts <- function(headers, parts = c('blank_row', 'Specimen label')) {
+bh_header_parts <- function(headers, parts = c("blank_row", "Specimen label")) {
   headers[parts,
           transpose(.(value[1:length(parts)])),
-          on = 'var', by = filename]
+          on = "var", by = filename]
 }
 
-# join the parts tuple to the headers data.table on 'var', so only return
+# join the parts tuple to the headers data.table on "var", so only return
 # rows where var == parts, returning the two values, named appropriately
 # all by filename so we output that column as well
 bh_get_labels <- function(headers) {
-  parts = c('blank_row', 'Specimen label')
+  parts <- c("blank_row", "Specimen label")
   headers[parts,
           .(blank_row = as.integer(value[1]), label = value[2]),
-          on = 'var', by = filename]
+          on = "var", by = filename]
 }
 
-# lines from headers that have var == 'blank_row' or 'Specimen label'
+# lines from headers that have var == "blank_row" or "Specimen label"
 # return the values as a list of two columns, by filename
 # join that data.table to samples, on filename, and assign the two columns
 # to 'blank_row' and 'label' respectively.
@@ -242,7 +237,8 @@ bh_get_labels <- function(headers) {
 # probably better to do this explicitly in the main code, but using specimen.labels
 # which returns .(blank, label) as that is more readable than .(V1, V2)
 bh_label_samples <- function(samples, headers) {
-  samples[bh_header_parts(headers), c('blank_row', 'label') := .(V1, V2), on = 'filename']
+  samples[bh_header_parts(headers),
+          c("blank_row", "label") := .(V1, V2), on = "filename"]
 }
 
 # given some instron data in a data.table, reverse the Extension & Load channels

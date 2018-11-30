@@ -1,6 +1,3 @@
-# load the peaksign function to detect peaks & troughs
-##source("find_peaks.R")
-
 #' Make cycle labels
 #'
 #' Create a cycle labels, 1 to nCycles, given a list of
@@ -12,8 +9,6 @@
 #' @return list from 1 to nCycles, each repeated by the
 #'   length of the cycle and the whole padded to the length
 #'   of the original series.
-#' @examples
-#' DT[, cycle := in_cycles_from_peaks(peaksign)][, f(Load), by=cycle]
 
 cycles_from_peaks <- function(peaks) {
   # does the first cycle go up or down?
@@ -45,8 +40,6 @@ cycles_from_peaks <- function(peaks) {
 #' The output can be used for grouping a \code{data.table} by segment
 #' @param peaks the list of turning points from peaksign
 #' @return list of seg = c("load","unload") padded to the length of the original series
-#' @examples
-#' DT[, segs := in_segs_from_peaks(peaksign)][, f(Load), by=segs]
 
 segs_from_peaks <- function(peaks) {
   # peaks (from peaksign) is
@@ -58,9 +51,11 @@ segs_from_peaks <- function(peaks) {
   breaks <- c(0, breaks, length(peaks))
   # how long is each segment (i.e. how many points between breaks)
   seg_lengths <- diff(breaks)
-  # make a list of ("load", "unload") long enough to have one label for each segment
-  # start with load as that is the first direction of movement (don't care if +ve or -ve)
-  seg_labels <- rep(c("load","unload"), length.out = length(seg_lengths))
+  # make a list of ("load", "unload") long enough to have
+  # one label for each segment
+  # start with load as that is the first direction of movement
+  # (don't care if +ve or -ve)
+  seg_labels <- rep(c("load", "unload"), length.out = length(seg_lengths))
   # repeat each label n times, where n is the length of each segment
   segs <- rep(seg_labels, times = seg_lengths)
 }
@@ -80,8 +75,6 @@ segs_from_peaks <- function(peaks) {
 #' @return a list of cycle numbers cycle = 1:n.cycles
 #'   and segments seg = rep(c("load","unload"))
 #'   both padded to the length of the original series
-#' @examples
-#' sample_data[, c("cycle", "seg", "peaks") := in_label_cycles(ext), by = ID]
 
 label_cycles <- function(series, span = 3) {
   # find the peaks (and their direction -1, 0, +1)
@@ -101,13 +94,9 @@ label_cycles <- function(series, span = 3) {
 #' @param formula A standard R formula object, passed to /code{lm()}
 #' @param data Values to fit (must contain the columns in /code{formula})
 #' @return A named list (int, slope, p, rsq)
-#' @examples
-#' slopes <- lm_simple(Load ~ Ext, data=test)$slope
-#' DT[, lm_simple(y ~ x, .SD), by=test]
-#' DT[Load %between% c(10, 100), lm_simple(y ~ x, .SD)]
 
 lm_simple <- function(formula, data) {
-  s  <- summary(lm(formula, data))
+  s  <- summary(stats::lm(formula, data))
   sc <- s$coefficients
   list(int   = sc[1, 1],
        slope = sc[2, 1],
@@ -126,9 +115,9 @@ lm_simple <- function(formula, data) {
 #' This version uses \code{lm_simple} to return other useful statistics
 #' @param DT a \code{data.table} to analyse
 #' @param formula a standard R formula specifying which columns to use
-#' @return
-#' Calculate the slope of a pair of columns (given be \code{formula})
+#' @return A named list (int, slope, p, rsq) for the segment with maximum slope
 #'
+
 slope_auto <- function(DT, formula) {
   segments <- 6 # Instron standard
   # chop into segments and get the slope for each
@@ -137,28 +126,9 @@ slope_auto <- function(DT, formula) {
 
   slopes <- fits$slope
   # add adjacent slopes & find the biggest
-  max_sum <- which.max(slopes + shift(slopes, type="lead"))
+  max_sum <- which.max(slopes + shift(slopes, type = "lead"))
   # which slope in that pair is biggest (max_sum or max-sum + 1 ?)
   max_of_pair <- which.max(slopes[max_sum:(max_sum + 1)])
   # return the fit for that segment
   fits[max_of_pair + max_sum - 1]
 }
-
-
-# More Examples.
-#
-# models <- sample.data[ext %between% linear.limits,
-#                       lm_simple(load ~ ext), by = ID]
-# # just the slopes (i.e. the multiplier of 'ext')
-# slopes <- models$slope
-# print(slopes)
-#
-# add on the identifying data from samples
-# (minus the filename that we are not really interested in)
-# slopes <- samples[slopes, on = "ID"][, -"filename"]
-#
-# slope.plot <- ggplot(sample.data[ext %between% linear.limits,]) +
-#   geom_point() + geom_smooth(method = "lm", colour = "grey") +
-#   facet_grid(density ~ material)
-# print(slope.plot)
-
