@@ -247,18 +247,20 @@ bh_make_compressive <- function(sample_data) {
   sample_data[, `:=`(Extension = -Extension, Load = -Load)]
 }
 
-# ' Calculate the slope(modulus) of a data series using the Bluehill algorithm
-# ' Essentially:
-# '   divide the span from \code{min(y)} to \code{max(y)} into 5 segments
-# '   calculate the slope of each segment
-# '   find the pair of segments with the highest average slope
-# '   combine those segments and recalcuate the slope for the both together
-# '
-# ' @param x a vector of ordinate data (often time or extension)
-# ' @param y a vector of abcissa data
-# ' @return the highest average slope(modulus) of \code{y/x}
-# ' @examples
-# ' stiffness <- bh_modulus(Extension, Load)
+#' Calculate the slope(modulus) of a data series using the Bluehill algorithm
+#' Essentially:
+#'   divide the span from \code{min(y)} to \code{max(y)} into 5 segments
+#'   calculate the slope of each segment
+#'   find the pair of segments with the highest average slope
+#'   combine those segments and recalcuate the slope for the both together
+#'
+#' @param x a vector of ordinate data (often time or extension)
+#' @param y a vector of abcissa data
+#' @return the highest average slope(modulus) of \code{y/x}
+#' @examples
+#' stiffness <- bh_modulus(Extension, Load)
+#' @export
+
 bh_modulus <- function(x, y, intervals = 5) {
   segment
 }
