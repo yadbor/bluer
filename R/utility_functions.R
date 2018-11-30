@@ -1,15 +1,15 @@
 # load the peaksign function to detect peaks & troughs
-source("find_peaks.R")
+##source("find_peaks.R")
 
 #' Make cycle labels
-#' 
-#' Create a cycle labels, 1 to nCycles, given a list of 
+#'
+#' Create a cycle labels, 1 to nCycles, given a list of
 #' turning points found using peaksign
 #' The testing direction (i.e. what is a peak)
 #' is found by checking sign of the first peak
 #' The output can be used for grouping a \code{data.table} by cycle
 #' @param peaks the list of turning points from peaksign
-#' @return list from 1 to nCycles, each repeated by the 
+#' @return list from 1 to nCycles, each repeated by the
 #'   length of the cycle and the whole padded to the length
 #'   of the original series.
 #' @examples
@@ -18,18 +18,18 @@ source("find_peaks.R")
 cycles_from_peaks <- function(peaks) {
   # does the first cycle go up or down?
   direction <- peaks[peaks != 0][1] # sign of the first peak found
-  
+
   if (direction == 0) {
     # no cycles, so signal that by returning all zeros
     return(rep(0, length(peaks)))
   }
-  
+
   # otherwise, if there are some cycles
   # +1 = upwards, -1 = downwards, 0 = no peaks
   # cycles break at the trough of each cycle, which is opposite to the peak
   breaks <- which(peaks == -direction)
-  
-  # add the endpoints of the series, to capture the first and last cycle/segment 
+
+  # add the endpoints of the series, to capture the first and last cycle/segment
   breaks <- c(0, breaks, length(peaks))
   # how long is each cycle (i.e. how many points between breaks)
   cycle_lengths <- diff(breaks)
@@ -38,8 +38,8 @@ cycles_from_peaks <- function(peaks) {
 }
 
 #' Make segment labels
-#' 
-#' Create a list of load/unload segment labels, 
+#'
+#' Create a list of load/unload segment labels,
 #' given a list of turning points found using peaksign
 #' the first segment is assumed to be "load", followed by "unload" etc.
 #' The output can be used for grouping a \code{data.table} by segment
@@ -49,12 +49,12 @@ cycles_from_peaks <- function(peaks) {
 #' DT[, segs := in_segs_from_peaks(peaksign)][, f(Load), by=segs]
 
 segs_from_peaks <- function(peaks) {
-  # peaks (from peaksign) is 
+  # peaks (from peaksign) is
   # +1 = upwards, -1 = downwards, 0 = not a peak
-  # segments swap at trough (to "load") and peak (to "unload"), 
+  # segments swap at trough (to "load") and peak (to "unload"),
   # so get both -1 and +1 from peaksign output
   breaks <- which(peaks != 0)
-  # add the endpoints of the series, to capture the first and last cycle/segment 
+  # add the endpoints of the series, to capture the first and last cycle/segment
   breaks <- c(0, breaks, length(peaks))
   # how long is each segment (i.e. how many points between breaks)
   seg_lengths <- diff(breaks)
@@ -66,12 +66,12 @@ segs_from_peaks <- function(peaks) {
 }
 
 #' Label cycles & segments
-#' 
+#'
 #' Given a data series, break into cycles (at each trough)
-#' break each cycle into load (trough -> peak) and 
-#' unload (peak -> trough) segments, using turning points 
-#' from peaksign. 
-#' As tests start at a trough and go to a peak, the testing 
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from peaksign.
+#' As tests start at a trough and go to a peak, the testing
 #' direction is found by checking sign of the first peak/trough.
 #' @param series the list/vector of data to search for peaks.
 #' @param span size of window to use when looking for peaks. Defaults to 3.
@@ -89,19 +89,19 @@ label_cycles <- function(series, span = 3) {
   # add cycle & seg columns
   cycle <- cycles_from_peaks(peaks)
   seg   <- segs_from_peaks(peaks)
-  
+
   list(cycle = cycle, seg = seg, peaks = peaks)
 }
 
 #' Simplified linear least squares fit
-#' 
+#'
 #' Returns the most useful parts of a basic /code{lm()}
 #' fit to simple univariate (y ~ x) data:
 #' intercept, slope, p-value and r squared
 #' @param formula A standard R formula object, passed to /code{lm()}
 #' @param data Values to fit (must contain the columns in /code{formula})
 #' @return A named list (int, slope, p, rsq)
-#' @examples 
+#' @examples
 #' slopes <- lm_simple(Load ~ Ext, data=test)$slope
 #' DT[, lm_simple(y ~ x, .SD), by=test]
 #' DT[Load %between% c(10, 100), lm_simple(y ~ x, .SD)]
@@ -109,14 +109,14 @@ label_cycles <- function(series, span = 3) {
 lm_simple <- function(formula, data) {
   s  <- summary(lm(formula, data))
   sc <- s$coefficients
-  list(int   = sc[1, 1], 
-       slope = sc[2, 1], 
+  list(int   = sc[1, 1],
+       slope = sc[2, 1],
        p     = sc[2, 4], # p of slope
        rsq   = s$r.squared)
 }
 
 #' Bluehill style Automatic Slope
-#' 
+#'
 #' Uses the Bluehill Automatic Slope algorithm
 #' 1. divide the series into six segments
 #' 2. calculate the slope for each segment
@@ -126,9 +126,9 @@ lm_simple <- function(formula, data) {
 #' This version uses \code{lm_simple} to return other useful statistics
 #' @param DT a \code{data.table} to analyse
 #' @param formula a standard R formula specifying which columns to use
-#' @return 
+#' @return
 #' Calculate the slope of a pair of columns (given be \code{formula})
-#' 
+#'
 slope_auto <- function(DT, formula) {
   segments <- 6 # Instron standard
   # chop into segments and get the slope for each
@@ -146,19 +146,19 @@ slope_auto <- function(DT, formula) {
 
 
 # More Examples.
-# 
-# models <- sample.data[ext %between% linear.limits, 
+#
+# models <- sample.data[ext %between% linear.limits,
 #                       lm_simple(load ~ ext), by = ID]
 # # just the slopes (i.e. the multiplier of 'ext')
 # slopes <- models$slope
 # print(slopes)
-# 
-# add on the identifying data from samples 
+#
+# add on the identifying data from samples
 # (minus the filename that we are not really interested in)
 # slopes <- samples[slopes, on = "ID"][, -"filename"]
-# 
-# slope.plot <- ggplot(sample.data[ext %between% linear.limits,]) + 
-#   geom_point() + geom_smooth(method = "lm", colour = "grey") + 
+#
+# slope.plot <- ggplot(sample.data[ext %between% linear.limits,]) +
+#   geom_point() + geom_smooth(method = "lm", colour = "grey") +
 #   facet_grid(density ~ material)
 # print(slope.plot)
 

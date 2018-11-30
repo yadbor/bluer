@@ -4,7 +4,7 @@
 #library(data.table)
 #library(stringr)
 
-source("utility_functions.R")
+##source("utility_functions.R")
 
 # Bluehill works with samples (created when you start a test) containing specimens
 # The user chooses a sample name and a folder in which to save the sample & results (the study folder)

@@ -22,4 +22,5 @@
 
 hello <- function() {
   print("Hello, world!")
+  notlo()
 }
