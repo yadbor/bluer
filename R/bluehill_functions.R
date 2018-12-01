@@ -220,6 +220,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 #' @return A \code{data.table} with the full path name to each specimen file
 #'   (which should be unique) and extracted sample and specimen identifiers.
 #' @import data.table
+#' @import stringr
 #' @export bh_find_specimens
 
 bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
@@ -249,6 +250,7 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
 #' @return A \code{data.table} with the headers (if any) from each specimen file
 #'   read using \code{bh_read_header}.
 #' @import data.table
+#' @import stringr
 #' @export bh_get_headers
 
 bh_get_headers <- function(samples) {
