@@ -82,7 +82,7 @@ id_parts <- c("filename", "sample", "specimen")
 #' @param filename the RawData file to process
 #' @return A \code{data.table} with any parameter: value pairs and
 #'   the header \code{blank_row} indicating the end of the header (0 if no headers)
-#' @imports data.table
+#' @import data.table
 #' @export bh_read_header
 
 bh_read_header <- function(filename) {
@@ -129,7 +129,7 @@ bh_read_header <- function(filename) {
 #' @param blank_row line number of the end of any header. Defaults to 0 (no header).
 #' @param min_results if TRUE only return the minimal subset of channels. Defaults to FALSE.
 #' @return A \code{data.table} with the measured channels in columns and the channel names as column names.
-#' @imports data.table
+#' @import data.table
 #' @export bh_read_data_1
 
 bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
@@ -171,7 +171,7 @@ bh_min_columns <- c("Time", "Extension", "Load")
 #' @param blank_row line number of the end of any header. Defaults to 0 (no header).
 #' @param select_cols a list of columns to return by number (or all if NULL). Defaults to NULL.
 #' @return A \code{data.table} with the measured channels in columns and the channel names as column names.
-#' @imports data.table
+#' @import data.table
 #' @export bh_read_data
 
 bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
@@ -219,7 +219,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 #' @param raw_regex defines what files to read. Defaults to all RawData files.
 #' @return A \code{data.table} with the full path name to each specimen file
 #'   (which should be unique) and extracted sample and specimen identifiers.
-#' @imports data.table
+#' @import data.table
 #' @export bh_find_specimens
 
 bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
@@ -248,7 +248,7 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
 #' @param samples A \code{data.table} with the pathname of each specimen file in column \code{filename}.
 #' @return A \code{data.table} with the headers (if any) from each specimen file
 #'   read using \code{bh_read_header}.
-#' @imports data.table
+#' @import data.table
 #' @export bh_get_headers
 
 bh_get_headers <- function(samples) {
