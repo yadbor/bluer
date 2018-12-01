@@ -53,6 +53,16 @@
 # or multiple Specimens in a test folder
 #
 
+#--------------------------------------------------------#
+# globalVariables(c("x.values", "y.values"))
+#--------------------------------------------------------#
+# This is an awful hack and I hate having to use it, but #
+# it is suggested as the least worst option by @hadley.  #
+# The other suggested solution (favoured by @mattdowle)  #
+# is to define each offending variable = NULL somewhere  #
+# higher in the function. I shall try the latter.        #
+#--------------------------------------------------------#
+
 ######################################
 # functions to read Bluehill 2.0 files
 ######################################
@@ -86,6 +96,9 @@ id_parts <- c("filename", "sample", "specimen")
 #' @export bh_read_header
 
 bh_read_header <- function(filename) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  V1 <- NULL
+
   # check filename for an instron header & process if there is one
   max_header <- 100 # assume that any header is <= 100 lines
   header <- fread(filename, blank.lines.skip = FALSE, sep = NULL,
@@ -224,6 +237,9 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 #' @export bh_find_specimens
 
 bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  ID <- specimen <- NULL
+
   # harvest all the names that look suitable
   files <- list.files(path = study_root, pattern = raw_regex,
                       recursive = TRUE, full.names = TRUE,
@@ -254,6 +270,9 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
 #' @export bh_get_headers
 
 bh_get_headers <- function(samples) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  filename <- var <- value <- NULL
+
   # load all the headers, which incldue the data start row
   headers <- samples[, bh_read_header(filename), by = filename]
   # will be getting info by filename, so set that as the key
@@ -266,8 +285,11 @@ bh_get_headers <- function(samples) {
 
 # early version of extracting the blank_row and label from the header
 bh_header_parts <- function(headers, parts = c("blank_row", "Specimen label")) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  filename <- value <- NULL
+
   headers[parts,
-          transpose(.(value[1:length(parts)])),
+          transpose(list(value[1:length(parts)])),
           on = "var", by = filename]
 }
 
@@ -281,9 +303,12 @@ bh_header_parts <- function(headers, parts = c("blank_row", "Specimen label")) {
 #' @export bh_get_labels
 
 bh_get_labels <- function(headers) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  filename <- value <- NULL
+
   parts <- c("blank_row", "Specimen label")
   headers[parts,
-          .(blank_row = as.integer(value[1]), label = value[2]),
+          list(blank_row = as.integer(value[1]), label = value[2]),
           on = "var", by = filename]
 }
 
@@ -310,8 +335,11 @@ bh_get_labels <- function(headers) {
 #' @export bh_label_samples
 
 bh_label_samples <- function(samples, headers) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  V1 <- V2 <- NULL
+
   samples[bh_header_parts(headers),
-          c("blank_row", "label") := .(V1, V2), on = "filename"]
+          c("blank_row", "label") := list(V1, V2), on = "filename"]
 }
 
 #' Change sign of compressive test
@@ -326,5 +354,8 @@ bh_label_samples <- function(samples, headers) {
 #' @export bh_make_compressive
 
 bh_make_compressive <- function(sample_data) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  Extension <- Load <- NULL
+
   sample_data[, `:=`(Extension = -Extension, Load = -Load)]
 }

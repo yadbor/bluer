@@ -12,7 +12,7 @@ slope_auto(DT, formula)
 \item{formula}{a standard R formula specifying which columns to use}
 }
 \value{
-A named list (int, slope, p, rsq) for the segment with maximum slope
+A named \code{list(int, slope, p, rsq)} for the segment with maximum slope
 }
 \description{
 Uses the Bluehill Automatic Slope algorithm
