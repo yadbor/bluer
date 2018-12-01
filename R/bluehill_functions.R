@@ -269,9 +269,15 @@ bh_header_parts <- function(headers, parts = c("blank_row", "Specimen label")) {
           on = "var", by = filename]
 }
 
-# join the parts tuple to the headers data.table on "var", so only return
-# rows where var == parts, returning the two values, named appropriately
-# all by filename so we output that column as well
+#' Get important sample labels from headers
+#'
+#' Extracts the \code{blank_row} and \code{Specimen Label} parts a specimen header.
+#'
+#' @param headers A \code{data.table} possibly containing a \code{blank_row} and \code{Specimen Label}.
+#' @return a named list containing the \code{blank_row}, \code{Specimen Label} and \code{filename} for each specimen.
+#' @import data.table
+#' @export bh_get_labels
+
 bh_get_labels <- function(headers) {
   parts <- c("blank_row", "Specimen label")
   headers[parts,
@@ -279,20 +285,44 @@ bh_get_labels <- function(headers) {
           on = "var", by = filename]
 }
 
+
 # lines from headers that have var == "blank_row" or "Specimen label"
 # return the values as a list of two columns, by filename
 # join that data.table to samples, on filename, and assign the two columns
 # to 'blank_row' and 'label' respectively.
 # Will give NA if either (but not both) var missing in original headers data.table
-# probably better to do this explicitly in the main code, but using specimen.labels
-# which returns .(blank, label) as that is more readable than .(V1, V2)
+# probably better to do this explicitly in the main code, but using specimen_labels
+# which returns .(blank_row, label) as that is more readable than .(V1, V2)
+
+#' Add header information to samples
+#'
+#' Copies the \code{blank_row} and \code{Specimen Label} parts from a \code{data.table} of specimen headers
+#' and adds them to a \code{data.table} of samples. Will give NA if either (but not both) headers are missing.
+#' It's probably better to do this explicitly in the main code, but using specimen_labels
+#' which returns .(blank, label) as that is more readable than .(V1, V2).
+#'
+#' @param samples A \code{data.table} of samples.
+#' @param headers A \code{data.table} of sample headers.
+#' @return \code{samples} with added columns for \code{blank_row} and \code{label} for each specimen.
+#' @import data.table
+#' @export bh_label_samples
+
 bh_label_samples <- function(samples, headers) {
   samples[bh_header_parts(headers),
           c("blank_row", "label") := .(V1, V2), on = "filename"]
 }
 
-# given some instron data in a data.table, reverse the Extension & Load channels
-# to change them from Tensile (as these two channels always are) to Compressive
+#' Change sign of compressive test
+#'
+#' Compression is defined as negative, so compressive tests have negative Load and Extension.
+#' This can look odd when plotted, so Bluehill provides \code{Compressive Load} and \code{Compressive Extension}
+#' This function inverts \code{Load} and \code{Extension}
+#'
+#' @param sample_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
+#' @return The same \code{data.table} with \code{ -1.0 * Load} and \code{-1.0 * Extension}
+#' @import data.table
+#' @export bh_make_compressive
+
 bh_make_compressive <- function(sample_data) {
   sample_data[, `:=`(Extension = -Extension, Load = -Load)]
 }
