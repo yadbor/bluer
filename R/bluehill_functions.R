@@ -69,12 +69,20 @@ id_regex <- paste0(".*", .Platform$file.sep,
                    "(.+).is_.+_RawData.*Specimen_RawData\\_(\\d+)\\.csv")
 id_parts <- c("filename", "sample", "specimen")
 
-# read any header in the given RawData file
+#' Read any headers in a RawData file
 #
-# returns a data.table with the parameter: value pairs and
-# the location of the end of the header (0 is there was no header)
-# this last can be passed to instron.data to indicate where the data starts
-#' @import data.table
+#' RawData files can contain header rows that describe the test as parameter: value pairs.
+#' This function reads any parameters into a \code{data.table} with columns
+#' for "type", "var", "value" and "units"
+#' A special header is added to describe the location of the end of the header
+#' as \code{information, blank_row, n} where\code{n} is the row number of the
+#' blank line that marks the end of the header (0 is there was no header).
+#' This can be passed to \code{bh_read_data} to indicate where the data starts.
+#'
+#' @param filename the RawData file to process
+#' @return A \code{data.table} with any parameter: value pairs and
+#'   the header \code{blank_row} indicating the end of the header (0 if no headers)
+#' @imports data.table
 #' @export bh_read_header
 
 bh_read_header <- function(filename) {
@@ -108,15 +116,22 @@ bh_read_header <- function(filename) {
   return(header)
 }
 
-# read the actual data values from a RawData file
-# if passed blank_row will start reading from there, skipping any header
-# if this is omitted the data is presumed to start at row 0
-# data columns have two line headers:
-# names in the first line and units in the second
-# if min.results = TRUE then only retrun the minimnal subset of columns
-# that every specimen should have: Time, Extension, Load
+#' Read the data from a RawData file
 #
-# returns a data.table with the column headers and the data columns as per the RawData file
+#' RawData files can contain header rows that describe the test, followed by a blank line
+#' and then the measured channels in columns. This function reads the data channels, starting
+#' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
+#' channel names in the first line and units in the second. This function discards channel units.
+#' If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
+#' By default all the channels in \code{filename} are read.
+#'
+#' @param filename the RawData file to process.
+#' @param blank_row line number of the end of any header. Defaults to 0 (no header).
+#' @param min_results if TRUE only return the minimal subset of channels. Defaults to FALSE.
+#' @return A \code{data.table} with the measured channels in columns and the channel names as column names.
+#' @imports data.table
+#' @export bh_read_data_1
+
 bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 
   col_names <- names(fread(filename, blank.lines.skip = TRUE,
@@ -142,6 +157,22 @@ bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 }
 
 bh_min_columns <- c("Time", "Extension", "Load")
+
+#' Read the data from a RawData file
+#
+#' RawData files can contain header rows that describe the test, followed by a blank line
+#' and then the measured channels in columns. This function reads the data channels, starting
+#' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
+#' channel names in the first line and units in the second. This function discards channel units.
+#' If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
+#' By default all the channels in \code{filename} are read.
+#'
+#' @param filename the RawData file to process.
+#' @param blank_row line number of the end of any header. Defaults to 0 (no header).
+#' @param select_cols a list of columns to return by number (or all if NULL). Defaults to NULL.
+#' @return A \code{data.table} with the measured channels in columns and the channel names as column names.
+#' @imports data.table
+#' @export bh_read_data
 
 bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
@@ -171,20 +202,26 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
   return(data)
 }
 
-# Starting from study_root, grab the names of everything that looks like an Instron specimen
-# as defined by raw_regex. If this is not given, the default is all RawData files under study.root
-# If only a sub-set of the files are needed, supply a regex to select just those.
-# for example, if there are several samples under study.root and we only want those for "bone",
-# use something like
-#   bh_read_specimens(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
-# Or better, gather all the file names and filter the returned data.table:
-#   bh_read_specimens(study_root)[sample %like% "bone", ]
+#' Find RawData files
 #
-# The sample name will be extracted from the name of the folder enclosing the specimen files
-# and the specimen number from the name of each specimen file
-#
-# returns a data.table with the full path name to each file (which should be unique to that file)
-# and the extracted sample and speciment identifiers
+#' Starting from \code{study_root}, grab the names of everything that looks like an Instron
+#' specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
+#' If only a sub-set of the sample files are needed, supply a regex to select just those.
+#' for example, if there are several samples under study.root and we only want those for "bone",
+#' use something like
+#'   bh_read_specimens(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
+#' Or better, gather all the file names and filter the returned data.table:
+#'   bh_read_specimens(study_root)[sample %like% "bone", ]
+#' Extracts the sample name is extracted from the name of the folder enclosing the
+#' specimen files and the specimen number from the name of each specimen (RawData) file.
+#'
+#' @param study_root the path where to start searching for specimen RawData files.
+#' @param raw_regex defines what files to read. Defaults to all RawData files.
+#' @return A \code{data.table} with the full path name to each specimen file
+#'   (which should be unique) and extracted sample and specimen identifiers.
+#' @imports data.table
+#' @export bh_find_specimens
+
 bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
   # harvest all the names that look suitable
   files <- list.files(path = study_root, pattern = raw_regex,
@@ -201,9 +238,19 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
   samples[, ID := paste(sample, specimen, sep = ".")]
 }
 
-# given a data.table containing the complete path names of the desired RawData files
-# in column 'filename', return the headers (if any) from each file
-# returns a data.table as per instron.header()
+
+#' Get Bluehill Headers
+#'
+#' Given a \code{data.table} containing the path names of the desired RawData files
+#' in column \code{filename}, return all the headers for each specimen in a \code{data.table}
+#' keyed by filename and the header names (in column \code{var}).
+#'
+#' @param samples A \code{data.table} with the pathname of each specimen file in column \code{filename}.
+#' @return A \code{data.table} with the headers (if any) from each specimen file
+#'   read using \code{bh_read_header}.
+#' @imports data.table
+#' @export bh_get_headers
+
 bh_get_headers <- function(samples) {
   # load all the headers, which incldue the data start row
   headers <- samples[, bh_read_header(filename), by = filename]

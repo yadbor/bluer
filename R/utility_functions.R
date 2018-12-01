@@ -1,3 +1,5 @@
+# Utility functions for analysing Instron test data from Bluehill
+
 #' Make cycle labels
 #'
 #' Create a cycle labels, 1 to nCycles, given a list of
@@ -75,6 +77,7 @@ segs_from_peaks <- function(peaks) {
 #' @return a list of cycle numbers cycle = 1:n.cycles
 #'   and segments seg = rep(c("load","unload"))
 #'   both padded to the length of the original series
+#' @export label_cycles
 
 label_cycles <- function(series, span = 3) {
   # find the peaks (and their direction -1, 0, +1)
@@ -94,6 +97,7 @@ label_cycles <- function(series, span = 3) {
 #' @param formula A standard R formula object, passed to /code{lm()}
 #' @param data Values to fit (must contain the columns in /code{formula})
 #' @return A named list (int, slope, p, rsq)
+#' @export lm_simple
 
 lm_simple <- function(formula, data) {
   s  <- summary(stats::lm(formula, data))
@@ -115,9 +119,9 @@ lm_simple <- function(formula, data) {
 #' This version uses \code{lm_simple} to return other useful statistics
 #' @param DT a \code{data.table} to analyse
 #' @param formula a standard R formula specifying which columns to use
-#' @return A named list (int, slope, p, rsq) for the segment with maximum slope
-#' @export
-#'
+#' @return A named \code{list(int, slope, p, rsq)} for the segment with maximum slope
+#' @import data.table
+#' @export slope_auto
 
 slope_auto <- function(DT, formula) {
   segments <- 6 # Instron standard
