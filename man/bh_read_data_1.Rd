@@ -2,13 +2,7 @@
 % Please edit documentation in R/bluehill_functions.R
 \name{bh_read_data_1}
 \alias{bh_read_data_1}
-\title{Read the data from a RawData file
-RawData files can contain header rows that describe the test, followed by a blank line
-and then the measured channels in columns. This function reads the data channels, starting
-after \code{blank_row} to skip any headers. Data channels have two line headers, with the
-channel names in the first line and units in the second. This function discards channel units.
-If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
-By default all the channels in \code{filename} are read.}
+\title{Read the data from a RawData file}
 \usage{
 bh_read_data_1(filename, blank_row = 0, min_results = FALSE)
 }
@@ -23,7 +17,6 @@ bh_read_data_1(filename, blank_row = 0, min_results = FALSE)
 A \code{data.table} with the measured channels in columns and the channel names as column names.
 }
 \description{
-Read the data from a RawData file
 RawData files can contain header rows that describe the test, followed by a blank line
 and then the measured channels in columns. This function reads the data channels, starting
 after \code{blank_row} to skip any headers. Data channels have two line headers, with the

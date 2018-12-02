@@ -2,14 +2,7 @@
 % Please edit documentation in R/bluehill_functions.R
 \name{bh_read_header}
 \alias{bh_read_header}
-\title{Read any headers in a RawData file
-RawData files can contain header rows that describe the test as parameter: value pairs.
-This function reads any parameters into a \code{data.table} with columns
-for "type", "var", "value" and "units"
-A special header is added to describe the location of the end of the header
-as \code{information, blank_row, n} where\code{n} is the row number of the
-blank line that marks the end of the header (0 is there was no header).
-This can be passed to \code{bh_read_data} to indicate where the data starts.}
+\title{Read any headers in a RawData file}
 \usage{
 bh_read_header(filename)
 }
@@ -21,7 +14,6 @@ A \code{data.table} with any parameter: value pairs and
   the header \code{blank_row} indicating the end of the header (0 if no headers)
 }
 \description{
-Read any headers in a RawData file
 RawData files can contain header rows that describe the test as parameter: value pairs.
 This function reads any parameters into a \code{data.table} with columns
 for "type", "var", "value" and "units"

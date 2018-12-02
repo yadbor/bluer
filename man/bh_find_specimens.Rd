@@ -2,17 +2,7 @@
 % Please edit documentation in R/bluehill_functions.R
 \name{bh_find_specimens}
 \alias{bh_find_specimens}
-\title{Find RawData files
-Starting from \code{study_root}, grab the names of everything that looks like an Instron
-specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
-If only a sub-set of the sample files are needed, supply a regex to select just those.
-for example, if there are several samples under study.root and we only want those for "bone",
-use something like
-  bh_read_specimens(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
-Or better, gather all the file names and filter the returned data.table:
-  bh_read_specimens(study_root)[sample %like% "bone", ]
-Extracts the sample name is extracted from the name of the folder enclosing the
-specimen files and the specimen number from the name of each specimen (RawData) file.}
+\title{Find RawData files}
 \usage{
 bh_find_specimens(study_root, raw_regex = ".*RawData.*\\\\.csv")
 }
@@ -26,7 +16,6 @@ A \code{data.table} with the full path name to each specimen file
   (which should be unique) and extracted sample and specimen identifiers.
 }
 \description{
-Find RawData files
 Starting from \code{study_root}, grab the names of everything that looks like an Instron
 specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
 If only a sub-set of the sample files are needed, supply a regex to select just those.

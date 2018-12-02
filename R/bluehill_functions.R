@@ -57,7 +57,7 @@
 # globalVariables(c("x.values", "y.values"))
 #--------------------------------------------------------#
 # This is an awful hack and I hate having to use it, but #
-# it is suggested as the least worst option by @hadley.  #
+# it was suggested as the least worst option by @hadley. #
 # The other suggested solution (favoured by @mattdowle)  #
 # is to define each offending variable = NULL somewhere  #
 # higher in the function. I shall try the latter.        #
@@ -76,11 +76,11 @@ raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
 # i.e. the name of the Sample folder, which is the last part of the pathname of
 # a RawData folder (minus Instron decoration) and the number of each Specimen file
 id_regex <- paste0(".*", .Platform$file.sep,
-                   "(.+).is_.+_RawData.*Specimen_RawData\\_(\\d+)\\.csv")
+                   "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv")
 id_parts <- c("filename", "sample", "specimen")
 
 #' Read any headers in a RawData file
-#
+#'
 #' RawData files can contain header rows that describe the test as parameter: value pairs.
 #' This function reads any parameters into a \code{data.table} with columns
 #' for "type", "var", "value" and "units"
@@ -130,7 +130,7 @@ bh_read_header <- function(filename) {
 }
 
 #' Read the data from a RawData file
-#
+#'
 #' RawData files can contain header rows that describe the test, followed by a blank line
 #' and then the measured channels in columns. This function reads the data channels, starting
 #' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
@@ -172,7 +172,7 @@ bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 bh_min_columns <- c("Time", "Extension", "Load")
 
 #' Read the data from a RawData file
-#
+#'
 #' RawData files can contain header rows that describe the test, followed by a blank line
 #' and then the measured channels in columns. This function reads the data channels, starting
 #' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
@@ -216,7 +216,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 }
 
 #' Find RawData files
-#
+#'
 #' Starting from \code{study_root}, grab the names of everything that looks like an Instron
 #' specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
 #' If only a sub-set of the sample files are needed, supply a regex to select just those.
