@@ -205,13 +205,19 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
   if (length(select_cols) > 0) {
     # check if these columns are in the file
-    all_in_header <- all(select_cols %chin% col_names)
-    # throw an error unless they are
-    stopifnot(all_in_header)
-    # otherwise get the column numbers for the selected column names
-    use_col_nums <- which(select_cols %chin% col_names)
-    # and just use the given names
-    col_names <- select_cols
+    if (is.(select_cols)) {
+      all_in_header <- (max(select_cols) <= length(col_names))
+      use_col_nums <- select_cols
+    }
+    if (is.character(select_cols)) {
+      all_in_header <- all(select_cols %chin% col_names)
+      # throw an error unless they are
+      stopifnot(all_in_header)
+      # otherwise get the column numbers for the selected column names
+      use_col_nums <- which(select_cols %chin% col_names)
+      # and just use the given names
+      col_names <- select_cols
+    }
   }
 
   # there are two rows of header (var name then units)
@@ -219,7 +225,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
   first_data_row <- blank_row + 3
   data <- fread(filename, blank.lines.skip = TRUE,
                 skip = first_data_row, select = use_col_nums)
-  setnames(data, col_names)
+  #setnames(data, col_names)
   return(data)
 }
 
