@@ -207,6 +207,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
     if (is.numeric(select_cols)) {
       all_in_header <- (max(select_cols) <= length(col_names))
       use_col_nums <- select_cols
+      col_names <- col_names[select_cols]
     }
     if (is.character(select_cols)) {
       all_in_header <- all(select_cols %chin% col_names)
@@ -224,7 +225,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
   first_data_row <- blank_row + 3
   data <- fread(filename, blank.lines.skip = TRUE,
                 skip = first_data_row, select = use_col_nums)
-  #setnames(data, col_names)
+  setnames(data, col_names)
   return(data)
 }
 
@@ -370,5 +371,5 @@ bh_make_compressive <- function(sample_data) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Extension <- Load <- NULL
 
-  sample_data[, `:=`(Extension = -1.0 * Extension, Load = -1.0 * Load)]
+  sample_data[, `:=`(Extension = -Extension, Load = -Load)]
 }
