@@ -169,7 +169,15 @@ bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
   return(data)
 }
 
-bh_min_columns <- c("Time", "Extension", "Load")
+#' Minimal Bluehill columns
+#'
+#' Returns the minimal column names for a Bluehill test:
+#' Time, Extension, Load
+#'
+#' @return a character vector = c("Time", "Extension", "Load")
+#' @export bh_min_columns
+
+bh_min_columns <- function () c("Time", "Extension", "Load")
 
 #' Read the data from a RawData file
 #'
