@@ -204,7 +204,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
   if (length(select_cols) > 0) {
     # check if these columns are in the file
-    if (is.(select_cols)) {
+    if (is.numeric(select_cols)) {
       all_in_header <- (max(select_cols) <= length(col_names))
       use_col_nums <- select_cols
     }
@@ -370,5 +370,5 @@ bh_make_compressive <- function(sample_data) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Extension <- Load <- NULL
 
-  sample_data[, `:=`(Extension = -Extension, Load = -Load)]
+  sample_data[, `:=`(Extension = -1.0 * Extension, Load = -1.0 * Load)]
 }
