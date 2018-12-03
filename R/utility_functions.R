@@ -16,7 +16,7 @@ cycles_from_peaks <- function(peaks) {
   # does the first cycle go up or down?
   direction <- peaks[peaks != 0][1] # sign of the first peak found
 
-  if (direction == 0) {
+  if (is.na(direction) | direction == 0) {
     # no cycles, so signal that by returning all zeros
     return(rep(0, length(peaks)))
   }
