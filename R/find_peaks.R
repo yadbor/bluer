@@ -37,7 +37,7 @@ peaks <- function(series, span = 3, do.pad = TRUE) {
 #' @param span the window size to use when looking for lower values.
 #' @param do.pad pad to the same length as the input seris? Default = TRUE.
 #' @return return (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak )
-#'
+#' @export peaksign
 
 peaksign <- function(series, span = 3, do.pad = TRUE) {
   ## Purpose: return (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak )

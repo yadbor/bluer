@@ -11,6 +11,7 @@
 #' @return list from 1 to nCycles, each repeated by the
 #'   length of the cycle and the whole padded to the length
 #'   of the original series.
+#' @export cycles_from_peaks
 
 cycles_from_peaks <- function(peaks) {
   # does the first cycle go up or down?
@@ -18,7 +19,7 @@ cycles_from_peaks <- function(peaks) {
 
   if (is.na(direction) | direction == 0) {
     # no cycles, so signal that by returning all zeros
-    return(rep(0, length(peaks)))
+    return(rep(0L, length(peaks)))
   }
 
   # otherwise, if there are some cycles
@@ -42,6 +43,7 @@ cycles_from_peaks <- function(peaks) {
 #' The output can be used for grouping a \code{data.table} by segment
 #' @param peaks the list of turning points from peaksign
 #' @return list of seg = c("load","unload") padded to the length of the original series
+#' @export segs_from_peaks
 
 segs_from_peaks <- function(peaks) {
   # peaks (from peaksign) is
