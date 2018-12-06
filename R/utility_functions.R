@@ -2,15 +2,15 @@
 
 #' Make cycle labels
 #'
-#' Create a cycle labels, 1 to nCycles, given a list of
-#' turning points found using peaksign
-#' The testing direction (i.e. what is a peak)
-#' is found by checking sign of the first peak
-#' The output can be used for grouping a \code{data.table} by cycle
+#' Create a cycle labels, 1 to nCycles, given a list of turning points found
+#' using peaksign The testing direction (i.e. what is a peak) is found by
+#' checking sign of the first peak The output can be used for grouping a
+#' \code{data.table} by cycle
 #' @param peaks the list of turning points from peaksign
-#' @return list from 1 to nCycles, each repeated by the
-#'   length of the cycle and the whole padded to the length
-#'   of the original series.
+#' @return list from 1 to nCycles, each repeated by the length of the cycle and
+#'   the whole padded to the length of the original series. If no turning points
+#'   are found (i.e. if the test was a ramp) then consider it all as cycle 1, so
+#'   return just 1 repeated for the whole test.
 #' @export cycles_from_peaks
 
 cycles_from_peaks <- function(peaks) {
@@ -18,8 +18,8 @@ cycles_from_peaks <- function(peaks) {
   direction <- peaks[peaks != 0][1] # sign of the first peak found
 
   if (is.na(direction) | direction == 0) {
-    # no cycles, so signal that by returning all zeros
-    return(rep(0L, length(peaks)))
+    # no turning points, so make it a single cycle (a ramp maybe?)
+    return(rep(1L, length(peaks)))
   }
 
   # otherwise, if there are some cycles

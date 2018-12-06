@@ -10,14 +10,14 @@ cycles_from_peaks(peaks)
 \item{peaks}{the list of turning points from peaksign}
 }
 \value{
-list from 1 to nCycles, each repeated by the
-  length of the cycle and the whole padded to the length
-  of the original series.
+list from 1 to nCycles, each repeated by the length of the cycle and
+  the whole padded to the length of the original series. If no turning points
+  are found (i.e. if the test was a ramp) then consider it all as cycle 1, so
+  return just 1 repeated for the whole test.
 }
 \description{
-Create a cycle labels, 1 to nCycles, given a list of
-turning points found using peaksign
-The testing direction (i.e. what is a peak)
-is found by checking sign of the first peak
-The output can be used for grouping a \code{data.table} by cycle
+Create a cycle labels, 1 to nCycles, given a list of turning points found
+using peaksign The testing direction (i.e. what is a peak) is found by
+checking sign of the first peak The output can be used for grouping a
+\code{data.table} by cycle
 }
