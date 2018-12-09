@@ -7,7 +7,7 @@
 bh_slack_correct(channel)
 }
 \arguments{
-\item{channel}{}
+\item{channel}{analyse this channel for starting slack}
 }
 \value{
 The original series with any initial slack portion trimmed off.

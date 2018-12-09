@@ -15,7 +15,7 @@
 #'
 #' Remove any slack at the start of a test (or cycle)
 #'
-#' @param channel
+#' @param channel analyse this channel for starting slack
 #'
 #' @return The original series with any initial slack portion trimmed off.
 #' @export bh_slack_correct
