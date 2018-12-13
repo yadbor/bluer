@@ -8,19 +8,20 @@
 # • determines which pair of regions that has the highest slope sum.
 # • from this pair, determines which region has the highest slope and assigns the modulus to
 # that region.
-# • determines the slack correction at the point where the modulus line intersects the zerostress
+# • determines the slack correction at the point where the modulus line intersects the zero stress
 # strain axis.
 
 #' Slack Correction
 #'
 #' Remove any slack at the start of a test (or cycle)
 #'
-#' @param channel analyse this channel for starting slack
+#' @param DT a data.table containing channels to be corrected
+#' @param channel analyse this channel to find starting slack
 #'
 #' @return The original series with any initial slack portion trimmed off.
 #' @export bh_slack_correct
 #'
 
-bh_slack_correct <- function(channel) {
+bh_slack_correct <- function(DT, channel) {
 
 }
