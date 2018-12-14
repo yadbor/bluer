@@ -83,7 +83,7 @@ segs_from_peaks <- function(peaks) {
 
 label_cycles <- function(series, span = 3) {
   # find the peaks (and their direction -1, 0, +1)
-  peaks <- peaksign(series, span, do.pad = TRUE)
+  peaks <- peaksign2(series, span, do.pad = TRUE)
   # add cycle & seg columns
   cycle <- cycles_from_peaks(peaks)
   seg   <- segs_from_peaks(peaks)

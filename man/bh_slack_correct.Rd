@@ -4,10 +4,12 @@
 \alias{bh_slack_correct}
 \title{Slack Correction}
 \usage{
-bh_slack_correct(channel)
+bh_slack_correct(DT, channel)
 }
 \arguments{
-\item{channel}{analyse this channel for starting slack}
+\item{DT}{a data.table containing channels to be corrected}
+
+\item{channel}{analyse this channel to find starting slack}
 }
 \value{
 The original series with any initial slack portion trimmed off.

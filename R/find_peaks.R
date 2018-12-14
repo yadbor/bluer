@@ -3,7 +3,9 @@
 #' My version, starting from Brian Ripley's and informed by all the others
 #' @param series the vector of numbers to find peaks in.
 #' @param span the window size to use when looking for lower values.
-#' @return a logical vector, TRUE for each peak
+#' @param do.pad should the result be padded to the input series length?
+#'   Default is TRUE.
+#' @return a logical vector, TRUE for each peak.
 #'
 peaksign2 <- function(series, span=3, do.pad = TRUE) {
   if ((span <- as.integer(span)) %% 2 != 1 || span == 1) {
@@ -40,7 +42,7 @@ peaksign2 <- function(series, span=3, do.pad = TRUE) {
 #' @return a logical vector, TRUE for each peak
 #'
 peaks1 <- function(series, span=3) {
-  z <- embed(series, span)
+  z <- stats::embed(series, span)
   result <- max.col(z) == 1 + span %/% 2
   result
 }
@@ -59,7 +61,7 @@ peaks1 <- function(series, span=3) {
 #' @return a logical vector, TRUE for each peak
 #'
 peaks2<-function(series,span=3) {
-  z <- embed(series, span)
+  z <- stats::embed(series, span)
   s <- span%/%2
   v<- max.col(z) == 1 + s
   result <- c(rep(FALSE,s),v)

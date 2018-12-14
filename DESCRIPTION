@@ -18,6 +18,10 @@ Imports:
     data.table,
     stringr,
     knitr
+Suggests: 
+  rmarkdown,
+  ggplot2,
+  microbenchmark
 License: CC0
 Encoding: UTF-8
 LazyData: true

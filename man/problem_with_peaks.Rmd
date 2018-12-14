@@ -1,22 +1,9 @@
 ---
 title: "Problems with Peaks"
-
-author: "Robert Day"
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Problems with Peaks}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+output:
+  html_document:
+    df_print: paged
 ---
-
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
-
 
 #Background
 When testing bio-mechanical specimens the first few loading cycles are often
@@ -169,38 +156,29 @@ This final version handles flat peaks with multiple identical values, and detect
 How do the various versions compare? Using `microbenchmark` and real sample data that has a "flat" peak in 8800:9200 (second peak)
 ```{r}
 library(data.table)
-# NB - problem with setting knitr to use the Project Directory, 
-# so use default to file directory
+# NB - need to set knitr to use the Project Directory
 print(getwd())
-test.file <- "../inst/extdata/vero_clear.is_ccyclic_RawData/Specimen_RawData_6.csv"
+test.file <- "./inst/extdata/vero_clear.is_ccyclic_RawData/Specimen_RawData_6.csv"
 DT <- data.table::fread (test.file, skip = 5, col.names = c("time", "ext", "load"), select = 1:3)
 DT[, ext := - ext] # need to invert as is compression test
 DT[, load := -load]
 
 # set a seed to avoid ripley changing between runs
 set.seed(007)
-if (requireNamespace("microbenchmark")) {
-  # we can do benchmarking
-  mbm <- microbenchmark::microbenchmark(
-    ripley   = p1 <- DT[, peaks1(ext)],
-    pikal    = p2 <- DT[, peaks2(ext)],
-    maechler = p3 <- DT[, peaks3(ext)],
-    peaksign = ps <- DT[, peaksign(ext)],
-    mine     = me <- DT[, peaksign2(ext)]
-  )
-  print(print(mbm, order = "median", signif = 2)[,-8])
-  
-  if (requireNamespace("ggplot2")) {
-    ggplot2::autoplot(mbm)
-  } else {
-    autoplot(mbm)
-  }
-} else {
-  print('install.packages("microbenchmark") if you want to run the benchmarking')
-}
+
+mbm <- microbenchmark::microbenchmark(
+  ripley   = p1 <- DT[, peaks1(ext)],
+  pikal    = p2 <- DT[, peaks2(ext)],
+  maechler = p3 <- DT[, peaks3(ext)],
+  peaksign = ps <- DT[, peaksign(ext)],
+  mine     = me <- DT[, peaksign2(ext)]
+)
+print(print(mbm, order = "median", signif = 2)[,-8])
+
+library(ggplot2)
+ggplot2::autoplot(mbm)
 ```
 
-#Output
 What peaks did each method find? There should be three peaks and two troughs, with the beginning end of the series being virtual troughs. By inspection the peaks should be near 3000, 9000, 15000 and the troughs near 6000, 12000.
 
 Peaks only
