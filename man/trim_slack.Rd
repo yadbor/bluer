@@ -11,16 +11,16 @@ trim_slack(DT, formula, lo = 0.02, hi = 0.08)
 
 \item{formula}{a standard R formula specifying which columns to use as x & y}
 
-\item{lo}{start at  \code{lo * y_max}. DEFAULT is 2%}
+\item{lo}{start at  \code{lo * y_max}. DEFAULT is 2\%}
 
-\item{hi}{finish at \code{hi * y_max}. DEFAULT is 80%}
+\item{hi}{finish at \code{hi * y_max}. DEFAULT is 80\%}
 }
 \value{
 a \code{data.table} trimmed to the limits calculated above
 }
 \description{
 Time any initial slack by
-1. taking the y data betewwn 2% and 80% of max y (usually Load)
+1. taking the y data between 2\% and 80\% of max y (usually Load)
 2. fit a straight line
 3. calculate the x_intercept (usually Extension)
 4. calculate x_max, the x value at max y

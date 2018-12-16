@@ -144,7 +144,7 @@ slope_auto <- function(DT, formula) {
 #' Remove intitial slack
 #'
 #' Time any initial slack by
-#' 1. taking the y data betewwn 2% and 80% of max y (usually Load)
+#' 1. taking the y data between 2\% and 80\% of max y (usually Load)
 #' 2. fit a straight line
 #' 3. calculate the x_intercept (usually Extension)
 #' 4. calculate x_max, the x value at max y
@@ -155,19 +155,25 @@ slope_auto <- function(DT, formula) {
 #' from \code{Time}, if that column exists.
 #' @param DT a \code{data.table} to trim
 #' @param formula a standard R formula specifying which columns to use as x & y
-#' @param lo start at  \code{lo * y_max}. DEFAULT is 2%
-#' @param hi finish at \code{hi * y_max}. DEFAULT is 80%
+#' @param lo start at  \code{lo * y_max}. DEFAULT is 2\%
+#' @param hi finish at \code{hi * y_max}. DEFAULT is 80\%
 #' @return a \code{data.table} trimmed to the limits calculated above
 #' @import data.table
 #' @export trim_slack
 
 trim_slack <- function(DT, formula, lo = 0.02, hi = 0.08) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  Time <- NULL
+
   x <- all.vars(formula)[2]  # get the ordinate
   y <- all.vars(formula)[1]  # get the abscissa
-  limits <- DT[, {max = max(get(y)); min = min(get(y)); span = (max-min);
-                .(min = min, max = max, span = span,
-                  lo = min + lo * span,
-                  hi = hi * max)}]
+  limits <- DT[, {
+                   max = max(get(y)); min = min(get(y)); span = (max-min);
+                   list(min = min, max = max, span = span,
+                        lo = min + lo * span,
+                        hi = hi * max)
+                 }
+               ]
 
   fit <- DT[, lm_simple(formula, .SD[get(y) %between% limits[, c(lo, hi)]])]
 
