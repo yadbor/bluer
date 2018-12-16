@@ -149,21 +149,25 @@ slope_auto <- function(DT, formula) {
 #' 3. calculate the x_intercept (usually Extension)
 #' 4. calculate x_max, the x value at max y
 #' 5. trim off any data point below x_intercept and x_max
-#' The Bluehill version would use AutoSlope, but this just fits the whole data
-#' @param DT a \code{data.table} to analyse
-#' @param formula a standard R formula specifying which columns to use
+#' The Bluehill version would use AutoSlope, but this just fits the whole data.
+#' To make the trimmed test start at zero, the first row is subtracted from the
+#' dependent (x) variable as specifed in the input \code{formula} and also
+#' from \code{Time}, if that column exists.
+#' @param DT a \code{data.table} to trim
+#' @param formula a standard R formula specifying which columns to use as x & y
+#' @param lo start at  \code{lo * y_max}. DEFAULT is 2%
+#' @param hi finish at \code{hi * y_max}. DEFAULT is 80%
 #' @return a \code{data.table} trimmed to the limits calculated above
 #' @import data.table
 #' @export trim_slack
 
-trim_slack <- function(DT, formula) {
-  lim_mult <- c(0.02, 0.8)  # analyse from 2% to 80% of max
+trim_slack <- function(DT, formula, lo = 0.02, hi = 0.08) {
   x <- all.vars(formula)[2]  # get the ordinate
   y <- all.vars(formula)[1]  # get the abscissa
   limits <- DT[, {max = max(get(y)); min = min(get(y)); span = (max-min);
-  .(min = min, max = max, span = span,
-    lo = min + lim_mult[1] * span,
-    hi = lim_mult[2] * max)}]
+                .(min = min, max = max, span = span,
+                  lo = min + lo * span,
+                  hi = hi * max)}]
 
   fit <- DT[, lm_simple(formula, .SD[get(y) %between% limits[, c(lo, hi)]])]
 
@@ -171,5 +175,8 @@ trim_slack <- function(DT, formula) {
   x_max <- DT[, get(x)[which.max(get(y))]]
 
   trimmed <- DT[get(x) %between% c(x_int, x_max), ]
-  trimmed[, c("Time", x) := .(Time-Time[1], get(x) - get(x)[1])]
+  trimmed[, get(x) := get(x) - get(x)[1]]
+  if ("Time" %in% names(DT)) {
+    trimmed[, Time:= Time-Time[1]]
+  }
 }

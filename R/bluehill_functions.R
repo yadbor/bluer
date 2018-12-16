@@ -6,7 +6,7 @@
 # within the study folder are:
 #   <sample_name>.is_<test_type>	an xml file describing the sample/test
 #   <sample_name>.im_<test_type>	an xml file describing the test method
-#   <sample_name>.id_<test_type>	a binary file cotaining the recoreded data (magic number TDAT)
+#   <sample_name>.id_<test_type>	a binary file containing the recoreded data (magic number TDAT)
 #
 # if the data or results have been exported they appear as:
 #   <sample_name>.is_<test_type>_RawData	a folder containing exported raw data as Specimen_RawData_<sample_no>.csv
@@ -398,19 +398,17 @@ bh_make_compressive <- function(sample_data) {
 #' This version justs fits a single line to 0.02:0.80 of maximum and uses the
 #' intercept from that to define the zero point. Rows before that point are
 #' removed and the first row subtracted from both \code{Time} and
-#' \code{Extension}, so that thy start from zero. \code{Load} is unchanged.
+#' \code{Extension}, so that they start from zero. \code{Load} is unchanged.
 #'
-#' @param DT a data.table containing channels to be corrected.
-#'   Must contain \code{Time} (used as \code{x}) and one other at least.
-#' @param channel analyse this channel to find starting slack.
+#' Really just a wrapper for \code{trim_slack()}
 #'
+#' @param DT a data.table with \code{Load} and \code{Extension} channels to be corrected.
 #' @return The original series with any initial slack portion removed.
 #' @export bh_slack_correct
 #'
 
-bh_slack_correct <- function(DT, channel) {
-  span <- DT[, max(channel)-min(channel)]$V1
-  limits <- c(0.02, 0.80)*span
-  DT[, lm_simple(channel ~ Time, .SD[channel %between% limits])$int]
+bh_slack_correct <- function(DT) {
+  # analyse from 2% to 80% of max
+  trim_slack(DT, Load ~ Extension, lo = 0.02, hi = 0.80)
 }
 
