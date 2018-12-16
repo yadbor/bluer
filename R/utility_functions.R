@@ -139,3 +139,37 @@ slope_auto <- function(DT, formula) {
   # return the fit for that segment
   fits[max_of_pair + max_sum - 1]
 }
+
+
+#' Remove intitial slack
+#'
+#' Time any initial slack by
+#' 1. taking the y data betewwn 2% and 80% of max y (usually Load)
+#' 2. fit a straight line
+#' 3. calculate the x_intercept (usually Extension)
+#' 4. calculate x_max, the x value at max y
+#' 5. trim off any data point below x_intercept and x_max
+#' The Bluehill version would use AutoSlope, but this just fits the whole data
+#' @param DT a \code{data.table} to analyse
+#' @param formula a standard R formula specifying which columns to use
+#' @return a \code{data.table} trimmed to the limits calculated above
+#' @import data.table
+#' @export trim_slack
+
+trim_slack <- function(DT, formula) {
+  lim_mult <- c(0.02, 0.8)  # analyse from 2% to 80% of max
+  x <- all.vars(formula)[2]  # get the ordinate
+  y <- all.vars(formula)[1]  # get the abscissa
+  limits <- DT[, {max = max(get(y)); min = min(get(y)); span = (max-min);
+  .(min = min, max = max, span = span,
+    lo = min + lim_mult[1] * span,
+    hi = lim_mult[2] * max)}]
+
+  fit <- DT[, lm_simple(formula, .SD[get(y) %between% limits[, c(lo, hi)]])]
+
+  x_int <- -(fit$int/fit$slope)
+  x_max <- DT[, get(x)[which.max(get(y))]]
+
+  trimmed <- DT[get(x) %between% c(x_int, x_max), ]
+  trimmed[, c("Time", x) := .(Time-Time[1], get(x) - get(x)[1])]
+}
