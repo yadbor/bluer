@@ -181,7 +181,7 @@ trim_slack <- function(DT, formula, lo = 0.02, hi = 0.08) {
   x_max <- DT[, get(x)[which.max(get(y))]]
 
   trimmed <- DT[get(x) %between% c(x_int, x_max), ]
-  trimmed[, get(x) := get(x) - get(x)[1]]
+  trimmed[, x := get(x) - get(x)[1]]
   if ("Time" %in% names(DT)) {
     trimmed[, Time:= Time-Time[1]]
   }
