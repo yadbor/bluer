@@ -65,12 +65,141 @@
 # higher in the function. I shall try the latter.        #
 #--------------------------------------------------------#
 
+
+#' Minimal Bluehill columns
+#'
+#' A constant naming the minimal column names for a Bluehill test:
+#' Time, Extension, Load
+#'
+#' @export bh_options
+#'
+bh_options <- list(raw_regex = ".*RawData.*\\.csv", # what a raw data filename looks like
+                   max_header = 100,  # assume that any header is <= 100 lines
+                   min_columns = c("Time", "Extension", "Load"), # minimal useful test results
+                   id_regex = file.path(".*",
+                                      "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv"),
+                   id_parts = c("filename", "sample", "specimen"),
+                   min_results = TRUE
+)
+
 ######################################
 # functions to read Bluehill 2.0 files
 ######################################
-# Bluehill files have an optional header of study parameters etc. followed by a blank line
-# then two lines of column header: variable names in the first line, units in the second
-# then the data in columns
+
+#' Set __bluer__ options
+#'
+#' Provides an interface to set global options of processing BlueHill files.
+#'
+#'
+#' @export bh_set_options
+#'
+
+bh_set_option <- function(raw_regex = ".*RawData.*\\.csv",
+                           max_header = 100,
+                           min_columns = c("Time", "Extension", "Load")
+                           id_regex = file.path(".*",
+                                                "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv"),
+                           id_parts = c("filename", "sample", "specimen")
+
+                           ) {
+  bh_options$raw_regex <- raw_regex
+  bh_options$max_header <- max_header
+  bh_options$min_columns <- min_columns
+  bh_options$id_regex <- id_regex
+  bh_options$id_parts <- id_parts
+}
+
+#' Read a BlueHill RawData file
+#'
+#' RawData files can contain optional header rows that describe the test as
+#' parameter: value pairs, followed by a blank row, then the recorded data.
+#'
+#' The data part has two row of column header: variable names in the first row,
+#' then units in the second then the data in columns.
+#'
+#' This function reads any parameters into a \code{data.table} with columns for
+#' "type", "var", "value" and "units" A special header is added to describe the
+#' location of the end of the header as \code{information, blank_row, n}
+#' where\code{n} is the row number of the blank line that marks the end of the
+#' header (0 is there was no header). This can be passed to \code{bh_read_data}
+#' to indicate where the data starts.
+#'
+#' @param filename the name of the RawData file to process.
+#' @param min_results if \code{TRUE} only return three columns:
+#'   (Time, Load, Position). Defaults to \code{TRUE}.
+#' @param use_label if \code{TRUE} add any \code{label} field in the header
+#'   as a column in the output. Defaults to \code{TRUE}.
+#' @param use_filename if \code{TRUE} add the filename
+#'   as a column in the output. Defaults to \code{FALSE}.
+#' @param headers if \code{TRUE} return a \code{data.table} containing any
+#'   parameter:value pairs and \code{blank_row} indicating the end of the header.
+#'   \code{blank_row} = 0 if there were no headers. Defaults to \code{FALSE}.
+#' @import data.table
+#' @export bh_read_raw
+
+bh_read_raw <- function(filename,
+                        min_results = TRUE,
+                        use_label = TRUE,
+                        use_filename = FALSE,
+                        headers = FALSE) {
+
+  header <- bh_read_header(filename)
+
+  if (min_results) {
+    cols <- bh_options$min_columns
+  } else {
+    cols <- NULL
+  }
+  specimen <- bh_read_data(filename,
+                           as.integer(header["blank_row", value]),
+                           select_cols = cols
+                           )
+  if (use_label) {
+    specimen[, label := as.character(header["Specimen label", value])]
+  }
+  if (use_filename) {
+    specimen[, filename := filename]
+  }
+
+  if(headers) {
+    return(list(data = specimen, header = header))
+  } else {
+    return(specimen)
+  }
+}
+
+#' Label cycles & segments
+#'
+#' Given a data series, break into cycles (at each trough)
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from \code{peaksign}.
+#' As tests start at a trough and go to a peak, the testing
+#' direction is found by checking sign of the first peak/trough.
+#' @param specimen a \code{data.table} from BlueHill with the channels to search.
+#' @param channel which channel to look in for peaks.
+#'   Defaults to "Extension", which is usually the cleanest channel.
+#' @param span size of window to use when looking for peaks. Defaults to 3.
+#'  Larger spans are less sensitive to noise, but effectively smooth the series.
+#'
+#' @return the input \code{data.table} augmented with columns for
+#'   \code{cycle} the cycle number = 1:n.cycles and
+#'   \code{segment} the segnment = rep(c("load","unload"))
+#'   \code{peaks} = (-1, 0, +1) marking the location and direction of any peaks.
+#' @export bh_label_cycles
+
+bh_label_cycles <- function(specimen, channel = "Extension", span = 3) {
+  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
+  series <- specimen[, ..channel]
+  # find the peaks (and their direction -1, 0, +1)
+  peaks <- peaksign2(series, span, do.pad = TRUE)
+  # add cycle & seg columns
+  cycle <- cycles_from_peaks(peaks)
+  seg   <- segs_from_peaks(peaks)
+
+  specimen[, `:=`(cycle = cycle, seg = seg, peaks = peaks)]
+}
+
 
 # regular expression to match Bluehill RawData files
 raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
@@ -83,51 +212,56 @@ id_parts <- c("filename", "sample", "specimen")
 
 #' Read any headers in a RawData file
 #'
-#' RawData files can contain header rows that describe the test as parameter: value pairs.
-#' This function reads any parameters into a \code{data.table} with columns
-#' for "type", "var", "value" and "units"
-#' A special header is added to describe the location of the end of the header
-#' as \code{information, blank_row, n} where\code{n} is the row number of the
-#' blank line that marks the end of the header (0 is there was no header).
-#' This can be passed to \code{bh_read_data} to indicate where the data starts.
+#' RawData files can contain header rows that describe the test as
+#' parameter : value pairs. This function reads any parameters into
+#' a \code{data.table} with columns for "type", "var", "value" and "units".
+#' A special var \code{blank_row} of type \code{information} is added at
+#' the end with the row number of the end of the header, or 0 if there was
+#' no header in the file. This can be passed to \code{bh_read_data}.
 #'
 #' @param filename the RawData file to process
-#' @return A \code{data.table} with any parameter: value pairs and
-#'   the header \code{blank_row} indicating the end of the header (0 if no headers)
+#' @return A \code{data.table} with any parameter : value pairs and
+#'   the special header \code{blank_row} indicating the end of the header,
+#'   or 0 if there was no header.
 #' @import data.table
 #' @export bh_read_header
 
 bh_read_header <- function(filename) {
-  # horrible hack to avoid R CMD Check complaining about no visible binding
+  # Horrible hack to avoid R CMD Check complaining about no visible binding.
   V1 <- NULL
 
-  # check filename for an instron header & process if there is one
-  max_header <- 100 # assume that any header is <= 100 lines
-  header <- fread(filename, blank.lines.skip = FALSE, sep = NULL,
-                  header = FALSE, nrows = max_header)
+  # sep = NULL just reads lines into one column.
+  header <- data.table::fread(filename,
+                              blank.lines.skip = FALSE,
+                              sep = NULL,
+                              header = FALSE,
+                              nrows = bh_options$max_header)
+
+  # Find the empty row, or 0 if no empty row.
   blank_row <- header[, which(V1 == "")]
-  # get the column headers from the first row after the blank line
-  # or the first row if blank_row == 0
-  # there are two rows of header (var name then units)
-  col_headers <- header[blank_row + (1:2), ]
-  # if there is a header find where it ends & split out the contents
+  # If there is a header find where it ends & split out the contents.
   if (blank_row > 0) {
-    # header rows have up to 4 parts
-    # type : var.name, value, units
-    # so split on ' : ' or ',' (can't use ':' as times have colons)
-    header <- header[1:blank_row - 1, tstrsplit(V1, split = c(" : |,"))]
+    # Header rows have up to 4 parts:
+    #   type : var.name, value, units
+    # so split on ' : ' or ',' (can't use ':' as time values contain colons).
+    header <- header[1:blank_row, data.table::tstrsplit(V1, split = c(" : |,"))]
+    # Name the columns, only using names that have a corresponding column.
+    use_names <- c("type", "var", "value", "units")[1:ncol(header)]
+    data.table::setnames(header, use_names)
+    # Add the blank row info, but need to coerce into the existing column type.
+    header[blank_row, `:=`(type = "information", var = "blank_row",
+                           value = as.character(blank_row))]
+    # It turns out that the "Specimen label" values has quotes in the field.
+    # Strip any quotes in all fields as we don't want them anywhere.
+    header[, value := str_remove_all(value, "\"")]
   } else {
-    # no blank line means there was no header, so make an empty one
-    header <- data.table()
+    # If there was no header make one with just the blank_row info.
+    header <- data.table::data.table(type  = "information",
+                                     var   = "blank_row",
+                                     value = blank_row)
   }
+  data.table::setkey(header, var) # Make it fast & easy to look up variables.
 
-  # save the blank line location
-  blank_loc <- data.table(V1 = "information", V2 = "blank_row", V3 = blank_row)
-  # add to header, using only matching columns as header may only have 3
-  header <- rbindlist(list(header, blank_loc), use.names = TRUE)
-
-  # name the columns, only using names that have a corresponding column
-  setnames(header, c("type", "var", "value", "units")[1:ncol(header)])
   return(header)
 }
 
