@@ -190,15 +190,43 @@ bh_read_raw <- function(filename,
 
 bh_label_cycles <- function(specimen, channel = "Extension", span = 3) {
   # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
-  series <- specimen[, ..channel]
+  #series <- specimen[, ..channel]
   # find the peaks (and their direction -1, 0, +1)
-  peaks <- peaksign2(series, span, do.pad = TRUE)
+  peaks <- specimen[, peaksign2(get(channel), span, do.pad = TRUE)]
   # add cycle & seg columns
   cycle <- cycles_from_peaks(peaks)
   seg   <- segs_from_peaks(peaks)
 
   specimen[, `:=`(cycle = cycle, seg = seg, peaks = peaks)]
 }
+
+#' Label cycles & segments
+#'
+#' Given a data series, break into cycles (at each trough)
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from peaksign.
+#' As tests start at a trough and go to a peak, the testing
+#' direction is found by checking sign of the first peak/trough.
+#' @param series the list/vector of data to search for peaks.
+#' @param span size of window to use when looking for peaks. Defaults to 3.
+#'  Larger spans are less sensitive to noise, but effectively smooth the series.
+#'
+#' @return a list of cycle numbers cycle = 1:n.cycles
+#'   and segments seg = rep(c("load","unload"))
+#'   both padded to the length of the original series
+#' @export label_cycles
+
+label_cycles <- function(series, span = 3) {
+  # find the peaks (and their direction -1, 0, +1)
+  peaks <- peaksign2(series, span, do.pad = TRUE)
+  # add cycle & seg columns
+  cycle <- cycles_from_peaks(peaks)
+  seg   <- segs_from_peaks(peaks)
+
+  list(cycle = cycle, seg = seg, peaks = peaks)
+}
+
 
 
 # regular expression to match Bluehill RawData files

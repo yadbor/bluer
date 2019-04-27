@@ -33,5 +33,27 @@ cat("ADF is",object.size(ADF),"bytes\n")
 cat("ADT is",object.size(ADT),"bytes\n")
 ```
 
+So, a \code{sample} consists of one or more \code{specimen}s. Each \code{specimen} is a single test. Each \code{sample} is the application of a single \code{test} protocol. All the \code{specimen}s in a \code{sample} have the same \code{test} protocol.
 
+In _bluer_, each \code{specimen} is a \code{data.table} representing a single test, and each \code{sample} is a \code{data.table} holding all the \code{specimen}s, identified by \code{filename} or \code{UID}.
 
+specimen <- bh_read_raw(filename)
+
+OR, given a data.table samples with a column filename
+files <- list.files(pattern=raw.regex, path = data_folder, 
+                    recursive=TRUE, full.names=TRUE, ignore.case=TRUE)
+samples <- as.data.table(stringr::str_match(files, id.regex))
+
+sample_data <- samples[, 
+                       bh_read_raw(filename), 
+                       by=filename]
+                       
+specimen_columns = c(Time, Extension, Load, ..., label, specimen_ID)
+sample_columns   = c(specimen_columns, sample_info, sample_ID)
+study_columns    = c(sample_columns, study_info, study_ID]
+
+so, functions like
+
+bh_read_specimen
+bh_read_sample
+bh_read_study
