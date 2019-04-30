@@ -68,24 +68,24 @@
 ######################################
 # functions to read Bluehill 2.0 files
 ######################################
-# Bluehill files have an optional header of study parameters etc. followed by a blank line
-# then two lines of column header: variable names in the first line, units in the second
-# then the data in columns
+# Bluehill files have an optional header of study parameters etc. followed by a
+# blank line then two lines of column header: variable names in the first line,
+# units in the second then the data in columns
 
 # regular expression to match Bluehill RawData files
 raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
-# regex to extract rough test name and specimen ID
-# i.e. the name of the Sample folder, which is the last part of the pathname of
-# a RawData folder (minus Instron decoration) and the number of each Specimen file
+# regex to extract rough test name and specimen ID i.e. the name of the Sample
+# folder, which is the last part of the pathname of a RawData folder (minus
+# Instron decoration) and the number of each Specimen file
 id_regex <- paste0(".*", .Platform$file.sep,
                    "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv")
 id_parts <- c("filename", "sample", "specimen")
 
 #' Read any headers in a RawData file
 #'
-#' RawData files can contain header rows that describe the test as parameter: value pairs.
-#' This function reads any parameters into a \code{data.table} with columns
-#' for "type", "var", "value" and "units"
+#' RawData files can contain header rows that describe the test as parameter:
+#' value pairs. This function reads any parameters into a \code{data.table} with
+#' columns for "type", "var", "value" and "units".
 #' A special header is added to describe the location of the end of the header
 #' as \code{information, blank_row, n} where\code{n} is the row number of the
 #' blank line that marks the end of the header (0 is there was no header).
@@ -133,11 +133,13 @@ bh_read_header <- function(filename) {
 
 #' Read the data from a RawData file
 #'
-#' RawData files can contain header rows that describe the test, followed by a blank line
-#' and then the measured channels in columns. This function reads the data channels, starting
-#' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
-#' channel names in the first line and units in the second. This function discards channel units.
-#' If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
+#' RawData files can contain header rows that describe the test, followed by a
+#' blank line and then the measured channels in columns. This function reads the
+#' data channels, starting after \code{blank_row} to skip any headers. Data
+#' channels have two line headers, with the channel names in the first line and
+#' units in the second. This function discards channel units.
+#' If \code{min_results} = TRUE then only the Time, Extension and Load channels
+#' are returned.
 #' By default all the channels in \code{filename} are read.
 #'
 #' @param filename the RawData file to process.
@@ -182,11 +184,13 @@ bh_min_cols <- c("Time", "Extension", "Load")
 
 #' Read the data from a RawData file
 #'
-#' RawData files can contain header rows that describe the test, followed by a blank line
-#' and then the measured channels in columns. This function reads the data channels, starting
-#' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
-#' channel names in the first line and units in the second. This function discards channel units.
-#' If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
+#' RawData files can contain header rows that describe the test, followed by a
+#' blank line and then the measured channels in columns. This function reads the
+#' data channels, starting after \code{blank_row} to skip any headers. Data
+#' channels have two line headers, with the channel names in the first line and
+#' units in the second. This function discards channel units.
+#' If \code{min_results} = TRUE then only the Time, Extension and Load channels
+#' are returned.
 #' By default all the channels in \code{filename} are read.
 #'
 #' @param filename the RawData file to process.
@@ -233,16 +237,18 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
 #' Find RawData files
 #'
-#' Starting from \code{study_root}, grab the names of everything that looks like an Instron
-#' specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
-#' If only a sub-set of the sample files are needed, supply a regex to select just those.
-#' for example, if there are several samples under study.root and we only want those for "bone",
+#' Starting from \code{study_root}, grab the names of everything that looks like
+#' an Instron specimen as defined by \code{raw_regex}. The default is all
+#' RawData files under \code{study_root}. If only a sub-set of the sample files
+#' are needed, supply a regex to select just those. for example, if there are
+#' several samples under study.root and we only want those for "bone",
 #' use something like
 #'   bh_read_specimens(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
 #' Or better, gather all the file names and filter the returned data.table:
 #'   bh_read_specimens(study_root)[sample %like% "bone", ]
-#' Extracts the sample name is extracted from the name of the folder enclosing the
-#' specimen files and the specimen number from the name of each specimen (RawData) file.
+#' Extracts the sample name is extracted from the name of the folder enclosing
+#' the specimen files and the specimen number from the name of each specimen
+#' (RawData) file.
 #'
 #' @param study_root the path where to start searching for specimen RawData files.
 #' @param raw_regex defines what files to read. Defaults to all RawData files.
@@ -274,9 +280,10 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
 
 #' Get Bluehill Headers
 #'
-#' Given a \code{data.table} containing the path names of the desired RawData files
-#' in column \code{filename}, return all the headers for each specimen in a \code{data.table}
-#' keyed by filename and the header names (in column \code{var}).
+#' Given a \code{data.table} containing the path names of the desired RawData
+#' files in column \code{filename}, return all the headers for each specimen in
+#' a \code{data.table} keyed by filename and the header names (in column
+#' \code{var}).
 #'
 #' @param samples A \code{data.table} with the pathname of each specimen file in column \code{filename}.
 #' @return A \code{data.table} with the headers (if any) from each specimen file
@@ -340,10 +347,12 @@ bh_get_labels <- function(headers) {
 
 #' Add header information to samples
 #'
-#' Copies the \code{blank_row} and \code{Specimen Label} parts from a \code{data.table} of specimen headers
-#' and adds them to a \code{data.table} of samples. Will give NA if either (but not both) headers are missing.
-#' It's probably better to do this explicitly in the main code, but using specimen_labels
-#' which returns .(blank, label) as that is more readable than .(V1, V2).
+#' Copies the \code{blank_row} and \code{Specimen Label} parts from a
+#' \code{data.table} of specimen headers and adds them to a \code{data.table} of
+#' samples. Will give NA if either (but not both) headers are missing. It's
+#' probably better to do this explicitly in the main code, but using
+#' specimen_labels which returns .(blank, label) as that is more readable than
+#' .(V1, V2).
 #'
 #' @param samples A \code{data.table} of samples.
 #' @param headers A \code{data.table} of sample headers.

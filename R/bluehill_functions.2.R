@@ -96,7 +96,7 @@ bh_options <- list(raw_regex = ".*RawData.*\\.csv", # what a raw data filename l
 
 bh_set_option <- function(raw_regex = ".*RawData.*\\.csv",
                            max_header = 100,
-                           min_columns = c("Time", "Extension", "Load")
+                           min_columns = c("Time", "Extension", "Load"),
                            id_regex = file.path(".*",
                                                 "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv"),
                            id_parts = c("filename", "sample", "specimen")
@@ -108,135 +108,6 @@ bh_set_option <- function(raw_regex = ".*RawData.*\\.csv",
   bh_options$id_regex <- id_regex
   bh_options$id_parts <- id_parts
 }
-
-#' Read a BlueHill RawData file
-#'
-#' RawData files can contain optional header rows that describe the test as
-#' parameter: value pairs, followed by a blank row, then the recorded data.
-#'
-#' The data part has two row of column header: variable names in the first row,
-#' then units in the second then the data in columns.
-#'
-#' This function reads any parameters into a \code{data.table} with columns for
-#' "type", "var", "value" and "units" A special header is added to describe the
-#' location of the end of the header as \code{information, blank_row, n}
-#' where\code{n} is the row number of the blank line that marks the end of the
-#' header (0 is there was no header). This can be passed to \code{bh_read_data}
-#' to indicate where the data starts.
-#'
-#' @param filename the name of the RawData file to process.
-#' @param min_results if \code{TRUE} only return three columns:
-#'   (Time, Load, Position). Defaults to \code{TRUE}.
-#' @param use_label if \code{TRUE} add any \code{label} field in the header
-#'   as a column in the output. Defaults to \code{TRUE}.
-#' @param use_filename if \code{TRUE} add the filename
-#'   as a column in the output. Defaults to \code{FALSE}.
-#' @param headers if \code{TRUE} return a \code{data.table} containing any
-#'   parameter:value pairs and \code{blank_row} indicating the end of the header.
-#'   \code{blank_row} = 0 if there were no headers. Defaults to \code{FALSE}.
-#' @import data.table
-#' @export bh_read_raw
-
-bh_read_raw <- function(filename,
-                        min_results = TRUE,
-                        use_label = TRUE,
-                        use_filename = FALSE,
-                        headers = FALSE) {
-
-  header <- bh_read_header(filename)
-
-  if (min_results) {
-    cols <- bh_options$min_columns
-  } else {
-    cols <- NULL
-  }
-  specimen <- bh_read_data(filename,
-                           as.integer(header["blank_row", value]),
-                           select_cols = cols
-                           )
-  if (use_label) {
-    specimen[, label := as.character(header["Specimen label", value])]
-  }
-  if (use_filename) {
-    specimen[, filename := filename]
-  }
-
-  if(headers) {
-    return(list(data = specimen, header = header))
-  } else {
-    return(specimen)
-  }
-}
-
-#' Label cycles & segments
-#'
-#' Given a data series, break into cycles (at each trough)
-#' break each cycle into load (trough -> peak) and
-#' unload (peak -> trough) segments, using turning points
-#' from \code{peaksign}.
-#' As tests start at a trough and go to a peak, the testing
-#' direction is found by checking sign of the first peak/trough.
-#' @param specimen a \code{data.table} from BlueHill with the channels to search.
-#' @param channel which channel to look in for peaks.
-#'   Defaults to "Extension", which is usually the cleanest channel.
-#' @param span size of window to use when looking for peaks. Defaults to 3.
-#'  Larger spans are less sensitive to noise, but effectively smooth the series.
-#'
-#' @return the input \code{data.table} augmented with columns for
-#'   \code{cycle} the cycle number = 1:n.cycles and
-#'   \code{segment} the segnment = rep(c("load","unload"))
-#'   \code{peaks} = (-1, 0, +1) marking the location and direction of any peaks.
-#' @export bh_label_cycles
-
-bh_label_cycles <- function(specimen, channel = "Extension", span = 3) {
-  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
-  #series <- specimen[, ..channel]
-  # find the peaks (and their direction -1, 0, +1)
-  peaks <- specimen[, peaksign2(get(channel), span, do.pad = TRUE)]
-  # add cycle & seg columns
-  cycle <- cycles_from_peaks(peaks)
-  seg   <- segs_from_peaks(peaks)
-
-  specimen[, `:=`(cycle = cycle, seg = seg, peaks = peaks)]
-}
-
-#' Label cycles & segments
-#'
-#' Given a data series, break into cycles (at each trough)
-#' break each cycle into load (trough -> peak) and
-#' unload (peak -> trough) segments, using turning points
-#' from peaksign.
-#' As tests start at a trough and go to a peak, the testing
-#' direction is found by checking sign of the first peak/trough.
-#' @param series the list/vector of data to search for peaks.
-#' @param span size of window to use when looking for peaks. Defaults to 3.
-#'  Larger spans are less sensitive to noise, but effectively smooth the series.
-#'
-#' @return a list of cycle numbers cycle = 1:n.cycles
-#'   and segments seg = rep(c("load","unload"))
-#'   both padded to the length of the original series
-#' @export label_cycles
-
-label_cycles <- function(series, span = 3) {
-  # find the peaks (and their direction -1, 0, +1)
-  peaks <- peaksign2(series, span, do.pad = TRUE)
-  # add cycle & seg columns
-  cycle <- cycles_from_peaks(peaks)
-  seg   <- segs_from_peaks(peaks)
-
-  list(cycle = cycle, seg = seg, peaks = peaks)
-}
-
-
-
-# regular expression to match Bluehill RawData files
-raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
-# regex to extract rough test name and specimen ID
-# i.e. the name of the Sample folder, which is the last part of the pathname of
-# a RawData folder (minus Instron decoration) and the number of each Specimen file
-id_regex <- paste0(".*", .Platform$file.sep,
-                   "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv")
-id_parts <- c("filename", "sample", "specimen")
 
 #' Read any headers in a RawData file
 #'
@@ -292,6 +163,163 @@ bh_read_header <- function(filename) {
 
   return(header)
 }
+
+#' Read a BlueHill RawData file
+#'
+#' RawData files can contain optional header rows that describe the test as
+#' parameter: value pairs, followed by a blank row, then the recorded data.
+#'
+#' The data part has two row of column header: variable names in the first row,
+#' then units in the second then the data in columns.
+#'
+#' This function reads any parameters into a \code{data.table} with columns for
+#' "type", "var", "value" and "units" A special header is added to describe the
+#' location of the end of the header as \code{information, blank_row, n}
+#' where\code{n} is the row number of the blank line that marks the end of the
+#' header (0 is there was no header). This can be passed to \code{bh_read_data}
+#' to indicate where the data starts.
+#'
+#' @param filename the name of the RawData file to process.
+#' @param min_results if \code{TRUE} only return three columns:
+#'   (Time, Load, Position). Defaults to \code{TRUE}.
+#' @param use_label if \code{TRUE} add any \code{label} field in the header
+#'   as a column in the output. Defaults to \code{TRUE}.
+#' @param use_filename if \code{TRUE} add the filename
+#'   as a column in the output. Defaults to \code{FALSE}.
+#' @param headers if \code{TRUE} return a \code{data.table} containing any
+#'   parameter:value pairs and \code{blank_row} indicating the end of the header.
+#'   \code{blank_row} = 0 if there were no headers. Defaults to \code{FALSE}.
+#' @import data.table
+#' @export bh_read_raw
+
+bh_read_raw <- function(filename,
+                        min_results = TRUE,
+                        use_label = TRUE,
+                        use_filename = FALSE,
+                        headers = FALSE) {
+
+  header <- bh_read_header(filename)
+
+  if (min_results) {
+    cols <- bh_options$min_columns
+  } else {
+    cols <- NULL
+  }
+  specimen <- bh_read_data(filename,
+                           as.integer(header["blank_row", value]),
+                           select_cols = cols
+                           )
+  if (use_label) {
+    specimen[, label := as.character(header["Specimen label", value])]
+  }
+  if (use_filename) {
+    specimen[, specimen_ID := filename]
+  }
+
+  if(headers) {
+    return(list(data = specimen, header = header))
+  } else {
+    return(specimen)
+  }
+}
+
+#' Label cycles & segments
+#'
+#' Given a data series, break into cycles (at each trough)
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from \code{peaksign}.
+#' As tests start at a trough and go to a peak, the testing
+#' direction is found by checking sign of the first peak/trough.
+#' @param specimen a \code{data.table} from BlueHill with the channels to search.
+#' @param channel which channel to look in for peaks.
+#'   Defaults to "Extension", which is usually the cleanest channel.
+#' @param span size of window to use when looking for peaks. Defaults to 3.
+#'  Larger spans are less sensitive to noise, but effectively smooth the series.
+#'
+#' @return the input \code{data.table} augmented with columns for
+#'   \code{cycle} the cycle number = 1:n.cycles and
+#'   \code{segment} the segnment = rep(c("load","unload"))
+#'   \code{peaks} = (-1, 0, +1) marking the location and direction of any peaks.
+#' @export bh_label_cycles
+
+bh_label_cycles_old <- function(specimen, channel = "Extension", span = 3) {
+  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
+  #series <- specimen[, ..channel]
+  # find the peaks (and their direction -1, 0, +1)
+  peaks <- specimen[, peaksign2(get(channel), span, do.pad = TRUE)]
+  # add cycle & seg columns
+  cycle <- cycles_from_peaks(peaks)
+  seg   <- segs_from_peaks(peaks)
+
+  specimen[, `:=`(cycle = cycle, seg = seg, peaks = peaks)]
+}
+
+bh_label_cycles <- function(study, channel = "Extension", span = 5) {
+  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
+  #series <- specimen[, ..channel]
+
+  # Is this a Study, Sample or Specimen?
+  # We don't really care, we just need to know what variables to group by
+  # to get indiviual specimens to label
+  id_cols <- c("sample_ID","specimen_ID")
+  cols <- names(study)[names(study) %chin% id_cols]
+
+  study[, peaks := robust_peaks(get(channel), span),
+        by=specimen_ID]
+  # Need to create peaks first os that it can be referenced here
+  study[, `:=`(cycle = cycles_from_peaks(peaks),
+               seg   = segs_from_peaks(peaks)),
+        by=specimen_ID]
+
+  return(study)
+}
+
+
+#' Label cycles & segments
+#'
+#' Given a data series, break into cycles (at each trough)
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from peaksign.
+#' As tests start at a trough and go to a peak, the testing
+#' direction is found by checking sign of the first peak/trough.
+#' @param series the list/vector of data to search for peaks.
+#' @param span size of window to use when looking for peaks. Defaults to 3.
+#'  Larger spans are less sensitive to noise, but effectively smooth the series.
+#'
+#' @return a list of cycle numbers cycle = 1:n.cycles
+#'   and segments seg = rep(c("load","unload"))
+#'   both padded to the length of the original series
+#' @export label_cycles
+
+label_cycles <- function(series, span = 3) {
+  # find the peaks (and their direction -1, 0, +1)
+  peaks <- peaksign2(series, span, do.pad = TRUE)
+  # add cycle & seg columns
+  cycle <- cycles_from_peaks(peaks)
+  seg   <- segs_from_peaks(peaks)
+
+  list(cycle = cycle, seg = seg, peaks = peaks)
+}
+
+
+bh_read_study <- function(filenames) {
+  study <- data.table::data.table(specimen_ID = filenames)
+
+}
+
+
+
+# regular expression to match Bluehill RawData files
+raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
+# regex to extract rough test name and specimen ID
+# i.e. the name of the Sample folder, which is the last part of the pathname of
+# a RawData folder (minus Instron decoration) and the number of each Specimen file
+id_regex <- paste0(".*", .Platform$file.sep,
+                   "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv")
+id_parts <- c("filename", "sample", "specimen")
+
 
 #' Read the data from a RawData file
 #'
@@ -530,9 +558,9 @@ bh_label_samples <- function(samples, headers) {
 #' @param sample_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
 #' @return The same \code{data.table} with \code{ -1.0 * Load} and \code{-1.0 * Extension}
 #' @import data.table
-#' @export bh_make_compressive
+#' @export bh_invert_compressive
 
-bh_make_compressive <- function(sample_data) {
+bh_invert_compressive <- function(sample_data) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Extension <- Load <- NULL
 
@@ -566,4 +594,5 @@ bh_slack_correct <- function(DT) {
   # analyse from 2% to 80% of max
   trim_slack(DT, Load ~ Extension, lo = 0.02, hi = 0.80)
 }
+
 

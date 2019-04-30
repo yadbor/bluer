@@ -5,7 +5,7 @@
 #' @param span the window size to use when looking for lower values.
 #' @param do.pad should the result be padded to the input series length?
 #'   Default is TRUE.
-#' @return a logical vector, TRUE for each peak.
+#' @return return (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak )
 #'
 peaksign2 <- function(series, span=3, do.pad = TRUE) {
   if ((span <- as.integer(span)) %% 2 != 1 || span == 1) {

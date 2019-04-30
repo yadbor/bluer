@@ -33,7 +33,7 @@ cat("ADF is",object.size(ADF),"bytes\n")
 cat("ADT is",object.size(ADT),"bytes\n")
 ```
 
-So, a \code{sample} consists of one or more \code{specimen}s. Each \code{specimen} is a single test. Each \code{sample} is the application of a single \code{test} protocol. All the \code{specimen}s in a \code{sample} have the same \code{test} protocol.
+So, a \code{sample} consists of one or more \code{specimen}s. Each \code{specimen} is a single test. Each \code{sample} is the application of a single \code{test} protocol. All the \code{specimen}s in a \code{sample} have (notionally) the same \code{test} protocol.
 
 In _bluer_, each \code{specimen} is a \code{data.table} representing a single test, and each \code{sample} is a \code{data.table} holding all the \code{specimen}s, identified by \code{filename} or \code{UID}.
 
@@ -57,3 +57,12 @@ so, functions like
 bh_read_specimen
 bh_read_sample
 bh_read_study
+
+Should we read the headers first & make up the study/sample/specimen info columns,
+or keep the headers in a seperate list (linked by specimen_ID),
+or read them all at once with "read_study" function?
+
+The study/sample/specimen info may be encoded in the filenames or label, or may be
+colpletely separate (e.g. in a lab book). Therefore need a way to read the data in and then label with info as appropriate. As the info can be in the files (e.g. a Label or Notes field) should read the files and then label.
+
+The data objects don't appear to be too huge; about 5 MB for 56000 observations of 13 variables, made up of 2 samples of 6 specimens each, with each specimen having a few (3-4) cycles of readings (roughly 4650 readings each). At those sizes it is reasonable to read everthing in at once.
