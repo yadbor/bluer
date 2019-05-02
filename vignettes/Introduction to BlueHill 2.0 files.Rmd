@@ -1,0 +1,68 @@
+---
+title: "BlueHill 2.0 Files"
+author: "Robert Day"
+date: "2 May 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+Bluehill works with `Samples` (which are created whenever you start a test) containing `Specimen`s. 
+The user chooses a sample name and a folder in which to save the sample & results data (the study folder)
+
+within the study folder are:
+
+    <sample_name>.is_<test_type>	an xml file describing the sample/test
+    <sample_name>.im_<test_type>	an xml file describing the test method
+    <sample_name>.id_<test_type>	a binary file containing the recorded data (magic number TDAT)
+
+If the data or results have been exported they appear as:
+
+    <sample_name>.is_<test_type>_RawData      a folder containing exported raw data files
+    <sample_name>.is_<test_type>_Results.csv  a CSV file containing any calcuated results
+
+each `RawData` folder contains one or more specimen files as `Specimen_RawData_<sample_no>.csv`
+
+The `<test_type>` indicates which type of test was performed, and can indicate what columns are likely in the CSV file:
+
+    tens    | tension
+    comp    | compression
+    tcyclic | tension profile
+    ccyclic | compression profile
+    trelax  | tension creep/relaxation
+    crelax  | compression creep/relaxation
+    flex    | bending
+
+Bluehill 2.0 exported data are structured in folders by `Sample` & `Specimen`.
+The `Sample` folder name is chosen by the user at the start of a test.
+Each `Sample` uses a single test method (which may be changed during the test,
+complicating matters).
+The general folder structure is therefore:
+
+Study Folder
+
+  + Sample_1
+    - Specimen_1  
+      ...  
+    - Specimen_n  
+
+    ...
+
+  + Sample_n
+    - Specimen_1  
+      ...
+    - Specimen_n
+
+For each sample, all `Specimens` should have the same columns.
+`Specimen` files can optionally contain a header, which may contain a `Specimen Label`.
+
+Each `Specimen` represents one continuous run of the testing machine 
+(what could normally be thought of as a 'test').
+If there are results files, they are in the study folder and named `sample_n_Results.csv`.
+
+At RPH we have used two different conventions, depending on who ran the tests and when:
+
++ Each `Specimen` in a seperate test folder (so only one `Specimen_Rawdata_n.csv` file per folder)
++ multiple `Specimen`s in each `Sample` folder
+
