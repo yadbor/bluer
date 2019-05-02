@@ -257,7 +257,7 @@ bh_label_cycles_old <- function(specimen, channel = "Extension", span = 3) {
 
 bh_label_cycles <- function(study, channel = "Extension", span = 5) {
   # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
-  #series <- specimen[, ..channel]
+  # series <- specimen[, ..channel]
 
   # Is this a Study, Sample or Specimen?
   # We don't really care, we just need to know what variables to group by
@@ -267,7 +267,7 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 
   study[, peaks := robust_peaks(get(channel), span),
         by=specimen_ID]
-  # Need to create peaks first os that it can be referenced here
+  # Need to create peaks above first so that it can be referenced here
   study[, `:=`(cycle = cycles_from_peaks(peaks),
                seg   = segs_from_peaks(peaks)),
         by=specimen_ID]
@@ -552,8 +552,9 @@ bh_label_samples <- function(samples, headers) {
 #' Change sign of compressive test
 #'
 #' Compression is defined as negative, so compressive tests have negative Load and Extension.
-#' This can look odd when plotted, so Bluehill provides \code{Compressive Load} and \code{Compressive Extension}
-#' This function inverts \code{Load} and \code{Extension}
+#' Bluehill provides \code{Compressive Load} and \code{Compressive Extension}, but these are
+#' not in every test, so this function inverts \code{Load} and \code{Extension} so that every
+#' test will be the same way up (i.e. move from low to high extension and low to high load).
 #'
 #' @param sample_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
 #' @return The same \code{data.table} with \code{ -1.0 * Load} and \code{-1.0 * Extension}
@@ -575,8 +576,8 @@ bh_invert_compressive <- function(sample_data) {
 #' AutoSlope to get the estimated slope and sets the new zero to where that line
 #' intersects y = 0.
 #'
-#' This version justs fits a single line to the whole range from 2\% to 80\% of maximum
-#' intercept from that to define the zero point. Rows before that point are
+#' This version justs fits a single line to the range from 2\% to 80\% of maximum
+#' and uses the intercept from that to define the zero point. Rows before that point are
 #' removed and the first row subtracted from both \code{Time} and \code{Extension}
 #' so that they start from zero. \code{Load} is unchanged.
 #'
