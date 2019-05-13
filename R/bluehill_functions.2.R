@@ -184,11 +184,15 @@ bh_read_header <- function(filename) {
 #'   (Time, Load, Position). Defaults to \code{TRUE}.
 #' @param use_label if \code{TRUE} add any \code{label} field in the header
 #'   as a column in the output. Defaults to \code{TRUE}.
-#' @param use_filename if \code{TRUE} add the filename
-#'   as a column in the output. Defaults to \code{FALSE}.
+#' @param use_filename if \code{TRUE} use the filename as the specimen_ID
+#'   otherwise add a unique numeric specimen_ID for each file.
+#'   Defaults to \code{FALSE}.
 #' @param headers if \code{TRUE} return a \code{data.table} containing any
 #'   parameter:value pairs and \code{blank_row} indicating the end of the header.
 #'   \code{blank_row} = 0 if there were no headers. Defaults to \code{FALSE}.
+#' @return if \code{headers == TRUE} a list with data = a \code{data.table} holding
+#'   the raw data and header = a \code{data.table} holding headers
+#'    if \code{headers == FALSE} just the \code{data.table} holding the raw data
 #' @import data.table
 #' @export bh_read_raw
 
@@ -209,11 +213,14 @@ bh_read_raw <- function(filename,
                            as.integer(header["blank_row", value]),
                            select_cols = cols
                            )
+  specimen[, filename := filename]
   if (use_label) {
     specimen[, label := as.character(header["Specimen label", value])]
   }
   if (use_filename) {
     specimen[, specimen_ID := filename]
+  } else {
+    specimen[, specimen_ID := .GRP, by = filename]
   }
 
   if(headers) {
@@ -264,10 +271,10 @@ bh_label_cycles_old <- function(specimen, channel = "Extension", span = 3) {
 #' As tests start at a trough and go to a peak, the testing
 #' direction is found by checking sign of the first peak/trough.
 #' Only works on "positive going" data, that is where the Load and
-#' Extension increase from start to peak. In other words,
-#' compressive studies must be inverted first.
+#' Extension increase from start to peak.
+#' In other words, compressive studies must be inverted first.
 #' @param series the list/vector of data to search for peaks.
-#' @param span size of window to use when looking for peaks. Defaults to 3.
+#' @param span size of window to use when looking for peaks. Default is 5.
 #'  Larger spans are less sensitive to noise, but effectively smooth the series.
 #'
 #' @return a list of cycle numbers cycle = 1:n.cycles
@@ -295,6 +302,12 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
   return(study)
 }
 
+#' read a set of tests (specimens), given their filenames
+#'
+#'
+#' @return a \code{data.table} containing all the data for all of the
+#'   files specified. Each specimen has a unique ID in column specimen_ID.
+#' @export bh_read_study
 
 bh_read_study <- function(filenames) {
   study <- data.table::data.table(specimen_ID = filenames)

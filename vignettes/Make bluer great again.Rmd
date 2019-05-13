@@ -5,7 +5,7 @@ date: "4/24/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -13,11 +13,11 @@ knitr::opts_chunk$set(echo = FALSE)
 
 What is the best way to structure the bluer object model?
 
-The basic unit of BlueHill should be the test. Each test will produce one .*RawData.*.csv file. In BlueHill speak these are `Specimen`s.
+The basic unit of BlueHill should be the test. Each test will produce one __.\*RawData.\*.csv__ file. In BlueHill speak these are `Specimens`.
 
 Each `Specimen` is a `.csv` file with an optional header containing specimen data followed by a blank row, then a two row column header (name in row 1 and units in row 2), then the data points.
 
-A sample should have a unique ID (possibly the filename), an optional sample label, other parameters as saved, and the data points. We might want to plot against UID or label, so need them as columns. Using filename does not appear to increase the size of the object by too much; using 55978 rows of approx 67 char filenames only increases size of table by 675k, compared to using a numeric ID (would be 3,750k if all bytes counted).
+A sample should have a unique ID (possibly the filename?), an optional sample label, other parameters as saved, and the data points. We might want to plot against UID or label, so need them as columns. Using filename does not appear to increase the size of the object by too much; using 55978 rows of approx 67 char filenames only increases size of table by 675k, compared to using a numeric ID (would be 3,750k if all bytes counted).
 
 A table with 55978 rows using filenames of about 67 chars each, but mostly repeats (only 12 unique names) uses 5158088 bytes. Deleting the filename column drops to 4707976 bytes.
 Taing the original and adding an integer UID goes up to 5382160. Deleting the filename column again gives 4932048 bytes; so an integer UID column is 224072 (4 bytes per row).
@@ -33,9 +33,9 @@ cat("ADF is",object.size(ADF),"bytes\n")
 cat("ADT is",object.size(ADT),"bytes\n")
 ```
 
-So, a \code{sample} consists of one or more \code{specimen}s. Each \code{specimen} is a single test. Each \code{sample} is the application of a single \code{test} protocol. All the \code{specimen}s in a \code{sample} have (notionally) the same \code{test} protocol.
+So, a `sample` consists of one or more `specimen`s. Each `specimen` is a single test. Each `sample` is the application of a single `test` protocol. All the `specimen`s in a `sample` have (notionally) the same `test` protocol.
 
-In _bluer_, each \code{specimen} is a \code{data.table} representing a single test, and each \code{sample} is a \code{data.table} holding all the \code{specimen}s, identified by \code{filename} or \code{UID}.
+In _bluer_, each `specimen` is a `data.table` representing a single test, and each `sample` is a `data.table` holding all the `specimen`s, identified by `filename` or `UID`.
 
 specimen <- bh_read_raw(filename)
 

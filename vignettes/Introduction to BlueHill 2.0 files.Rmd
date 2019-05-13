@@ -61,8 +61,26 @@ Each `Specimen` represents one continuous run of the testing machine
 (what could normally be thought of as a 'test').
 If there are results files, they are in the study folder and named `sample_n_Results.csv`.
 
-At RPH we have used two different conventions, depending on who ran the tests and when:
+At RPH we have used several different conventions, depending on who ran the tests and when.
+Variants include:
 
-+ Each `Specimen` in a seperate test folder (so only one `Specimen_Rawdata_n.csv` file per folder)
-+ multiple `Specimen`s in each `Sample` folder
++ one `Specimen` in each `Sample` folder  
+    so the test ID is in the folder name
 
++ multiple `Specimen` in each `Sample` folder  
+    where the test ID could be either  
+    + in the Label filed in the header
+    + kept in lab book or similar (so no test ID)
+
+  with multiple `Specimens` per `Sample`, each could be
+  
+  + multiple tests on the sample physical sample  
+      (e.g. AP then ML bending)
+  + the same test protocol on different physical samples  
+
+As there are several naming conventions that have been applied, _Bluer_ just considers `Rawdata` files, giving each file in a given study a unique test ID. 
+Grouping these by actual sample, test etc. is domain knowledge that the user will need to have to interpret the structure of the `Study`.
+
+No two physical tests can have the same full file path, so this is used to unambigously label each test. 
+Each set of test data is labelled with the test ID, as are the corresponding meta-data derived from the header and filename. 
+The test ID can be used to link the meta-data to the test data.
