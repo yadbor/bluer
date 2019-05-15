@@ -94,7 +94,7 @@ bh_options <- list(raw_regex = ".*RawData.*\\.csv", # what a raw data filename l
 #' @export bh_set_options
 #'
 
-bh_set_option <- function(raw_regex = ".*RawData.*\\.csv",
+bh_set_options <- function(raw_regex = ".*RawData.*\\.csv",
                            max_header = 100,
                            min_columns = c("Time", "Extension", "Load"),
                            id_regex = file.path(".*",
@@ -169,8 +169,8 @@ bh_read_header <- function(filename) {
 #' RawData files can contain optional header rows that describe the test as
 #' parameter: value pairs, followed by a blank row, then the recorded data.
 #'
-#' The data part has two row of column header: variable names in the first row,
-#' then units in the second then the data in columns.
+#' The data part has two rows of column header: variable names in the first row,
+#' then units in the second. Subsequent rows have the data in columns.
 #'
 #' This function reads any parameters into a \code{data.table} with columns for
 #' "type", "var", "value" and "units" A special header is added to describe the
@@ -305,13 +305,29 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 #' read a set of tests (specimens), given their filenames
 #'
 #'
-#' @return a \code{data.table} containing all the data for all of the
-#'   files specified. Each specimen has a unique ID in column specimen_ID.
+#' @return a list containing two \code{data.table}s
+#'   \code{headers} holding any headers, indexed by testID and
+#'   \code{data}  containing all the data for all of the files specified.
+#'   Each specimen has a unique ID in column testID, the same as \code{headers}.
 #' @export bh_read_study
 
 bh_read_study <- function(filenames) {
-  study <- data.table::data.table(specimen_ID = filenames)
-
+  # start with a data.table holding the pathnames of each file
+  SH <- data.table::data.table(pathname = files)
+  # read the headers
+  SH[, bh_read_header(pathname), by=pathname]
+  # make a unique ID number per pathname
+  SH[, testID := .GRP, by = pathname]
+  setkey(SH, testID)
+  # read the data
+  #SD <- SH[, bh_read_raw(pathname), by="pathname,testID"]
+  blank <- function(SH, ID) {
+    SH[testID == ID & var == "blank_row", as.integer(value)]
+  }
+  SD <- SH[, bh_read_data(pathname, blank_row = blank(SH, testID)),
+           by="pathname,testID"]
+  #
+  return(list(headers = SH, data = SD))
 }
 
 
