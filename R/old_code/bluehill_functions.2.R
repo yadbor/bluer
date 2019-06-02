@@ -82,22 +82,15 @@ bh_options <- list(raw_regex = ".*RawData.*\\.csv", # what a raw data filename l
                    min_results = TRUE
 )
 
-#------------------------------------#
+######################################
 # functions to read Bluehill 2.0 files
-#------------------------------------#
+######################################
 
 #' Set __bluer__ options
 #'
 #' Provides an interface to set global options of processing BlueHill files.
 #'
-#' @param raw_regex defines what the names of Raw files look like.
-#' @param max_header max number of rows in a header. Defaults to 100.
-#' @param min_columns a BlueHill test must contain at least three columns.
-#'     Time, Extension & Load
-#' @param id_regex to extract common identifying parts of a pathname
-#' @param id_parts the names of the common identifying parts of a pathname
-#' @return a named list of options.
-#'     Sets the global \code{bh_options} as a side effect.
+#'
 #' @export bh_set_options
 #'
 
@@ -125,7 +118,7 @@ bh_set_options <- function(raw_regex = ".*RawData.*\\.csv",
 #'   Defaults to Load.
 #' @return +1 if Tensile, -1 if Compressive
 
-test_direction <- function(channel) {
+test_dir <- function(channel) {
   sign(channel[which.max(abs(channel))]-channel[1])
 }
 
@@ -147,7 +140,7 @@ test_direction <- function(channel) {
 
 bh_read_header <- function(filename) {
   # Horrible hack to avoid R CMD Check complaining about no visible binding.
-  var <- value <- V1 <- NULL
+  V1 <- NULL
 
   # sep = NULL just reads lines into one column.
   header <- data.table::fread(filename,
@@ -221,8 +214,6 @@ bh_read_raw <- function(filename,
                         use_label = TRUE,
                         use_filename = FALSE,
                         headers = FALSE) {
-  # Horrible hack to avoid R CMD Check complaining about no visible binding.
-  label <- value <- specimen_ID <- NULL
 
   header <- bh_read_header(filename)
 
@@ -252,28 +243,36 @@ bh_read_raw <- function(filename,
   }
 }
 
-#' Make all tests positive going
+#' Label cycles & segments
 #'
-#' Compression is defined as negative, so compressive tests have negative Load and Extension.
-#' Bluehill provides \code{Compressive Load} and \code{Compressive Extension}, but these are
-#' not in every test, so this function checks if \code{Load} is going negative
-#' (i.e. a compressive test) and if so inverts \code{Load} and \code{Extension} so
-#' that the test will move from low to high extension and low to high load.
+#' Given a data series, break into cycles (at each trough)
+#' break each cycle into load (trough -> peak) and
+#' unload (peak -> trough) segments, using turning points
+#' from \code{peaksign}.
+#' As tests start at a trough and go to a peak, the testing
+#' direction is found by checking sign of the first peak/trough.
+#' @param specimen a \code{data.table} from BlueHill with the channels to search.
+#' @param channel which channel to look in for peaks.
+#'   Defaults to "Extension", which is usually the cleanest channel.
+#' @param span size of window to use when looking for peaks. Defaults to 3.
+#'  Larger spans are less sensitive to noise, but effectively smooth the series.
 #'
-#' @param study_data A \code{data.table} containing at least columns \code{Load} and \code{Extension}.
-#' @return The same \code{data.table} with \code{Load} and \code{Extension} always going from low to high
-#' @import data.table
-#' @export bh_normalise
+#' @return the input \code{data.table} augmented with columns for
+#'   \code{cycle} the cycle number = 1:n.cycles and
+#'   \code{segment} the segnment = rep(c("load","unload"))
+#'   \code{peaks} = (-1, 0, +1) marking the location and direction of any peaks.
+#' @export bh_label_cycles
 
-bh_normalise <- function(study_data) {
-  # horrible hack to avoid R CMD Check complaining about no visible binding
-  # to column names
-  Extension <- Load <- testID <- V1 <- NULL
+bh_label_cycles_old <- function(specimen, channel = "Extension", span = 3) {
+  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
+  #series <- specimen[, ..channel]
+  # find the peaks (and their direction -1, 0, +1)
+  peaks <- specimen[, peaksign2(get(channel), span, do.pad = TRUE)]
+  # add cycle & seg columns
+  cycle <- cycles_from_peaks(peaks)
+  seg   <- segs_from_peaks(peaks)
 
-  compressive <- study_data[, test_direction(Load), by=testID][V1 == -1, ]
-  data.table::setkey(compressive, testID)
-  study_data[testID %in% compressive$testID,
-             `:=`(Extension = -Extension, Load = -Load)]
+  specimen[, `:=`(cycle = cycle, seg = seg, peaks = peaks)]
 }
 
 #' Label cycles & segments using robust_peaks
@@ -287,19 +286,18 @@ bh_normalise <- function(study_data) {
 #' Only works on "positive going" data, that is where the Load and
 #' Extension increase from start to peak.
 #' In other words, compressive studies must be inverted first.
-#'
-#' @param study a BlueHill study to mark with peaks and cycles.
-#' @param channel the data channel to search for peaks.
+#' @param series the list/vector of data to search for peaks.
 #' @param span size of window to use when looking for peaks. Default is 5.
 #'  Larger spans are less sensitive to noise, but effectively smooth the series.
+#'
 #' @return a list of cycle numbers cycle = 1:n.cycles
 #'   and segments seg = rep(c("load","unload"))
 #'   both padded to the length of the original series
 #' @export bh_label_cycles
 
 bh_label_cycles <- function(study, channel = "Extension", span = 5) {
-  # horrible hack to avoid R CMD Check complaining about no visible binding
-  testID <- Load <- NULL
+  # Pick a channel to use for finding peaks/splitting. Extension usually cleanest.
+  # series <- specimen[, ..channel]
 
   # Is this a Study, Sample or Specimen?
   # We don't really care, we just need to know what variables to group by
@@ -315,7 +313,7 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 
   # Check the directions as this only works on normalised studies
   # i.e. increasing away from start point.
-  directions <- study[, test_direction(Load), by=testID]$V1
+  directions <- study[, test_dir(Load), by=testID]$V1
   if (any(directions<0)) {
     stop("Can only label cycles in +ve going tests.\n",
          "\tConsder using bh_invert().\n")
@@ -330,10 +328,9 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
   return(study)
 }
 
-#' Read a set of tests (specimens), given their filenames.
-#' Will add a unique (to this study) testID to each test.
+#' read a set of tests (specimens), given their filenames
 #'
-#' @param files a list of file names/paths to read into the study.
+#'
 #' @return a list containing two \code{data.table}s
 #'   \code{headers} holding any headers, indexed by testID and
 #'   \code{data}  containing all the data for all of the files specified.
@@ -341,9 +338,6 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 #' @export bh_read_study
 
 bh_read_study <- function(files) {
-  # Horrible hack to avoid R CMD Check complaining about no visible binding.
-  testID <- pathname <- var <- value <- NULL
-
   # start with a data.table holding the pathnames of each file
   SH <- data.table::data.table(pathname = files)
   # read the headers
@@ -354,17 +348,15 @@ bh_read_study <- function(files) {
   # read the data
   #SD <- SH[, bh_read_raw(pathname), by="pathname,testID"]
   blank <- function(SH, ID) {
-    # Horrible hack to avoid R CMD Check complaining about no visible binding.
-    var <- value  <- NULL
     SH[testID == ID & var == "blank_row", as.integer(value)]
   }
   SD <- SH[, bh_read_data(pathname, blank_row = blank(SH, testID)),
            by="pathname,testID"]
-  # fortify data with test labels taken from headers, if any exist
-  SD <- SD[SH[var == "Specimen label", list(label=value,testID)], on="testID"]
   #
   return(list(headers = SH, data = SD))
 }
+
+
 
 # regular expression to match Bluehill RawData files
 raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
@@ -374,6 +366,51 @@ raw_regex <- ".*RawData.*\\.csv" # what a raw data filename looks like
 id_regex <- paste0(".*", .Platform$file.sep,
                    "(.+).is_.+_RawData.*Specimen_RawData[\\_\\.](\\d+)\\.csv")
 id_parts <- c("filename", "sample", "specimen")
+
+
+#' Read the data from a RawData file
+#'
+#' RawData files can contain header rows that describe the test, followed by a blank line
+#' and then the measured channels in columns. This function reads the data channels, starting
+#' after \code{blank_row} to skip any headers. Data channels have two line headers, with the
+#' channel names in the first line and units in the second. This function discards channel units.
+#' If \code{min_results} = TRUE then only the Time, Extension and Load channels are returned.
+#' By default all the channels in \code{filename} are read.
+#'
+#' @param filename the RawData file to process.
+#' @param blank_row line number of the end of any header. Defaults to 0 (no header).
+#' @param min_results if TRUE only return the minimal subset of channels. Defaults to FALSE.
+#' @return A \code{data.table} with the measured channels in columns and the channel names as column names.
+#' @import data.table
+#' @export bh_read_data_1
+
+bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
+
+  col_names <- names(data.table::fread(filename,
+                                       blank.lines.skip = TRUE,
+                                       skip = blank_row,
+                                       nrows = 1))
+  select_cols <- seq_along(col_names)
+
+  if (min_results) {
+    min_columns <- c("Time", "Extension", "Load")
+    # throw an error unless the minimal column set is in the file
+    all_in_header <- all(min_columns %chin% col_names)
+    select_cols <- which(min_columns %chin% col_names)
+    stopifnot(all_in_header)
+    col_names <- min_columns
+  }
+
+  # there are two rows of header (var name then units)
+  # so the actual data starts 3 rows below the blank line/start of file
+  first_data_row <- blank_row + 3
+  data <- data.table::fread(filename,
+                            blank.lines.skip = TRUE,
+                            skip = first_data_row,
+                            select = select_cols)
+  data.table::setnames(data, col_names)
+  return(data)
+}
 
 #' Minimal Bluehill columns
 #'
@@ -577,13 +614,36 @@ bh_label_samples <- function(samples, headers) {
 #' @param study_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
 #' @return The same \code{data.table} with \code{ -1.0 * Load} and \code{-1.0 * Extension}
 #' @import data.table
-#' @export bh_invert
+#' @export bh_invert_compressive
 
 bh_invert <- function(study_data) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Extension <- Load <- NULL
 
   study_data[, `:=`(Extension = -Extension, Load = -Load)]
+}
+
+#' Make all tests positive going
+#'
+#' Compression is defined as negative, so compressive tests have negative Load and Extension.
+#' Bluehill provides \code{Compressive Load} and \code{Compressive Extension}, but these are
+#' not in every test, so this function checks if \code{Load} is going negative
+#' (i.e. a compressive test) and if so inverts \code{Load} and \code{Extension} so
+#' that the test will move from low to high extension and low to high load.
+#'
+#' @param study_data A \code{data.table} containing at least columns \code{Load} and \code{Extension}.
+#' @return The same \code{data.table} with \code{Load} and \code{Extension} always going from low to high
+#' @import data.table
+#' @export bh_normalise
+
+bh_normalise <- function(study_data) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  # to column names
+  Extension <- Load <- testID <- NULL
+
+  compressive <- study_data[, test_dir(Load), by=testID][V1 == -1, ]
+  datea.table::setkey(compressive, testID)
+  study_data[testID %in% compressive$testID,  `:=`(Extension = -Extension, Load = -Load)]
 }
 
 #' Slack Correction

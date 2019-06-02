@@ -15,7 +15,7 @@ peaksign2(series, span = 3, do.pad = TRUE)
 Default is TRUE.}
 }
 \value{
-a logical vector, TRUE for each peak.
+return (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak )
 }
 \description{
 My version, starting from Brian Ripley's and informed by all the others

@@ -50,7 +50,7 @@ peaks1 <- function(series, span=3) {
 This function works by taking creating a matrix where each column is the original series shifted by one. 
 Each row of the matrix z consists of `series[i - 0], series[i - 1], ... series[i - span+1]`. `max.col()` then returns the number of the column with the biggest value, so `result` will be `TRUE` when the biggest value is in column `(1 + span %/% 2)`, i.e. when the middle column is bigger. 
 The columns are all shifted by 1, so the columns to the left will be the previous `span %/% 2` points and the columns on the right will be the next `span %/% 2` points. If the middle column is bigger than that point is bigger than it's `span %/% 2` neighbours on either side. In other words, a peak.
-The `result` vector returned by this function will be shorted than the original series, losing `peak %/%2` points from either end as the input series is shifted off the end.
+The `result` vector returned by this function will be shorted than the original series, losing `peak %/% 2` points from either end as the input series is shifted off the end.
 
 The next function uses the same idea, extended by Petr Pikal to pad `result` to the same length as the input `series`.
 ```{r}
@@ -165,6 +165,79 @@ peaksign2 <- function(series, span=3, do.pad = TRUE) {
 
 This final version handles flat peaks with multiple identical values, and detects both peaks and troughs in a single function.
 
+## Even more final version
+When tested on more data, the method above failed for some tests with 'flat' spots at the peaks.
+These could be runs of data points with the same y value or very runs of slowly changing y values.
+Multiple peaks (or troughs) in a row were returned for a single real peak (or trough). 
+These can be common in slow speed tests, so a more robust method was required.
+Clearly, there can't be multiple peaks without a trough in between (and the same for mutipe trouchs with no intervening peak).
+The new method uses the `peaksign2()` function, but then rejects peaks that do not meet a strict alternation of peaks and troughs.
+The start of the test is effectively a trough, so the first peak/trough must be a peak, follwoed by a trough and so on.
+To make it easier to find these, all tests should have positive extension & load at a peak.
+This means that compressive tests (and other tests where the crosshead moves down) shoudl have load and extension inverted before the peak finder is run.
+```{r}
+#' Find Peaks and Troughs Robustly (version 3)
+#'
+#' My version, starting from Brian Ripley's and informed by all the others.
+#'   The previous version found peaks & toughs, but could get false hits
+#'   when there was a flat run of the same value. This is not uncommon in
+#'   testing data, particularly at low speeds and high data sampling rates,
+#'   where the crosshead can pause at the top or bottom of travel and generate
+#'   several data points all at the same load/extension.
+#'
+#'   We solve this by recognising that the starting poing must be a trough
+#'   (as we are moving away from start towards maximum) and that the peaks
+#'   and troughs must come in strict succession. That is, each peak must be
+#'   followed by a trough, and so on. Any additional peaks/troughs are false.
+#'
+#'   This version only works with data that increase away from the start point.
+#'   That means that compressive tests, where the absolute Load & Extension go
+#'   negative from start, must be inverted before testing for peaks.
+#'
+#' @param series The vector of numbers to find peaks in.
+#'   Assumed to start low and move towards a peak first.
+#' @param span The number of points to check looking for each peak.
+#'   Must be odd and >= 3.
+#'   Default is 5.
+#' @return A vector of (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak ).
+#'   Always padded to the length of the input, and awlays starts with a trough.
+#'
+robust_peaks <- function(series, span=5) {
+  if ((span <- as.integer(span)) %% 2 != 1 || span == 1) {
+    stop("'span' must be odd and >= 3")
+  }
+  z <- stats::embed(series, span)
+  s <- span %/% 2
+  ans <- rep.int(0L, nrow(z))
+  # max is peak
+  v <- max.col(z, ties.method = "first")  == (1 + s)
+  ans[v] <-  1
+  # no min.col so uses max(-v) for trough
+  v <- max.col(-z, ties.method = "first")  == (1 + s)
+  ans[v] <- -1
+  # pad back to length of input vector
+  pad <- rep.int(0L, s)
+  ans <- c(pad, ans, pad)
+  # and always start from a virtual trough,
+  # as always start with a loading phase
+  ans[1] <- -1
+
+  # This algorithm gets false positives for runs of equal value, so clean
+  # up by only marking peaks and troughs in strict succession. That is, a
+  # peak/trough is only marked if it is different from the preceeding
+  # peak/trough.
+  # Only operate on elements wich are a potential peak or trough.
+  maybe_pk <- ans[ans != 0]
+  # Check if each value is a real peak/trough, otherwise erase it.
+  shifted <- data.table::shift(maybe_pk, type="lag", fill = -1)
+  real_pk <- ifelse(maybe_pk == shifted, 0, maybe_pk)
+  # Stuff the corrected peaks back in to the right spots in ans.
+  ans[which(ans != 0)] <- real_pk
+
+  return(ans)
+}
+```
+
 ## Timing
 How do the various versions compare? Using `microbenchmark` and real sample data that has a "flat" peak in 8800:9200 (second peak)
 ```{r}
@@ -186,7 +259,8 @@ if (requireNamespace("microbenchmark")) {
     pikal    = p2 <- DT[, peaks2(ext)],
     maechler = p3 <- DT[, peaks3(ext)],
     peaksign = ps <- DT[, peaksign(ext)],
-    mine     = me <- DT[, peaksign2(ext)]
+    mine     = me <- DT[, peaksign2(ext)],
+    robust   = ro <- DT[, robust_peaks(ext)]
   )
   print(print(mbm, order = "median", signif = 2)[,-8])
   
@@ -200,8 +274,11 @@ if (requireNamespace("microbenchmark")) {
 }
 ```
 
+It appears the robust method is a bit slower, but not horribly so.
+
 #Output
-What peaks did each method find? There should be three peaks and two troughs, with the beginning end of the series being virtual troughs. By inspection the peaks should be near 3000, 9000, 15000 and the troughs near 6000, 12000.
+What peaks did each method find? There should be three peaks and two troughs, with the beginning and end of the series being virtual troughs. 
+By inspection the peaks should be near 3000, 9000, 15000 and the troughs near 6000, 12000.
 
 Peaks only
 
@@ -213,6 +290,8 @@ Peaks and troughs
 
 * macheler `r which(ps==1)`
 * mine     `r which(me==1)`
+* robust   `r which(ro==1)`
 * macheler `r which(ps==-1)`
 * mine     `r which(me==-1)`
+* robust   `r which(ro==-1)`
 * ripley   `r which(DT[, peaks1(-ext)])`

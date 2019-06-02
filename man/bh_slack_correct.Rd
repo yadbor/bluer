@@ -20,8 +20,8 @@ The Bluehill version sets the limits at 2\% and 80\% of maximum then uses
 AutoSlope to get the estimated slope and sets the new zero to where that line
 intersects y = 0.
 
-This version justs fits a single line to the whole range from 2\% to 80\% of maximum
-intercept from that to define the zero point. Rows before that point are
+This version justs fits a single line to the range from 2\% to 80\% of maximum
+and uses the intercept from that to define the zero point. Rows before that point are
 removed and the first row subtracted from both \code{Time} and \code{Extension}
 so that they start from zero. \code{Load} is unchanged.
 

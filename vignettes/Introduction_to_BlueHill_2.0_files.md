@@ -1,0 +1,89 @@
+---
+title: "BlueHill 2.0 Files"
+author: "Robert Day"
+date: "2 May 2019"
+output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Sending Messages With Gmailr}
+  %\usepackage[utf8]{inputenc}
+---
+
+
+Bluehill works with `Samples` (which are created whenever you start a test) containing `Specimen`s. 
+The user chooses a sample name and a folder in which to save the sample & results data (the study folder)
+
+within the study folder are:
+
+    <sample_name>.is_<test_type>	an xml file describing the sample/test
+    <sample_name>.im_<test_type>	an xml file describing the test method
+    <sample_name>.id_<test_type>	a binary file containing the recorded data (magic number TDAT)
+
+If the data or results have been exported they appear as:
+
+    <sample_name>.is_<test_type>_RawData      a folder containing exported raw data files
+    <sample_name>.is_<test_type>_Results.csv  a CSV file containing any calcuated results
+
+each `RawData` folder contains one or more specimen files as `Specimen_RawData_<sample_no>.csv`
+
+The `<test_type>` indicates which type of test was performed, and can indicate what columns are likely in the CSV file:
+
+    tens    | tension
+    comp    | compression
+    tcyclic | tension profile
+    ccyclic | compression profile
+    trelax  | tension creep/relaxation
+    crelax  | compression creep/relaxation
+    flex    | bending
+
+Bluehill 2.0 exported data are structured in folders by `Sample` & `Specimen`.
+The `Sample` folder name is chosen by the user at the start of a test.
+Each `Sample` uses a single test method (which may be changed during the test,
+complicating matters).
+The general folder structure is therefore:
+
+Study Folder
+
+  + Sample_1
+    - Specimen_1  
+      ...  
+    - Specimen_n  
+
+    ...
+
+  + Sample_n
+    - Specimen_1  
+      ...
+    - Specimen_n
+
+For each sample, all `Specimens` should have the same columns.
+`Specimen` files can optionally contain a header, which may contain a `Specimen Label`.
+
+Each `Specimen` represents one continuous run of the testing machine 
+(what could normally be thought of as a 'test').
+If there are results files, they are in the study folder and named `sample_n_Results.csv`.
+
+At RPH we have used several different conventions, depending on who ran the tests and when.
+Variants include:
+
++ one `Specimen` in each `Sample` folder  
+    so the test ID is in the folder name
+
++ multiple `Specimen` in each `Sample` folder  
+    where the test ID could be either  
+    + in the Label filed in the header
+    + kept in lab book or similar (so no test ID)
+
+  with multiple `Specimens` per `Sample`, each could be
+  
+  + multiple tests on the sample physical sample  
+      (e.g. AP then ML bending)
+  + the same test protocol on different physical samples  
+
+As there are several naming conventions that have been applied, _Bluer_ just considers `Rawdata` files, giving each file in a given study a unique test ID. 
+Grouping these by actual sample, test etc. is domain knowledge that the user will need to have to interpret the structure of the `Study`.
+
+No two physical tests can have the same full file path, so this is used to unambigously label each test. 
+Each set of test data is labelled with the test ID, as are the corresponding meta-data derived from the header and filename. 
+The test ID can be used to link the meta-data to the test data.

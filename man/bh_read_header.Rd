@@ -10,15 +10,15 @@ bh_read_header(filename)
 \item{filename}{the RawData file to process}
 }
 \value{
-A \code{data.table} with any parameter: value pairs and
-  the header \code{blank_row} indicating the end of the header (0 if no headers)
+A \code{data.table} with any parameter : value pairs and
+  the special header \code{blank_row} indicating the end of the header,
+  or 0 if there was no header.
 }
 \description{
-RawData files can contain header rows that describe the test as parameter: value pairs.
-This function reads any parameters into a \code{data.table} with columns
-for "type", "var", "value" and "units"
-A special header is added to describe the location of the end of the header
-as \code{information, blank_row, n} where\code{n} is the row number of the
-blank line that marks the end of the header (0 is there was no header).
-This can be passed to \code{bh_read_data} to indicate where the data starts.
+RawData files can contain header rows that describe the test as
+parameter : value pairs. This function reads any parameters into
+a \code{data.table} with columns for "type", "var", "value" and "units".
+A special var \code{blank_row} of type \code{information} is added at
+the end with the row number of the end of the header, or 0 if there was
+no header in the file. This can be passed to \code{bh_read_data}.
 }

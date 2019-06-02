@@ -4,7 +4,7 @@
 \alias{trim_slack}
 \title{Remove intitial slack}
 \usage{
-trim_slack(DT, formula, lo = 0.02, hi = 0.08)
+trim_slack(DT, formula, lo = 0.02, hi = 1)
 }
 \arguments{
 \item{DT}{a \code{data.table} to trim}
