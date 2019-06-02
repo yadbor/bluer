@@ -3,11 +3,14 @@ title: "BlueHill 2.0 Files"
 author: "Robert Day"
 date: "2 May 2019"
 output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Sending Messages With Gmailr}
+  %\usepackage[utf8]{inputenc}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```
+
 Bluehill works with `Samples` (which are created whenever you start a test) containing `Specimen`s. 
 The user chooses a sample name and a folder in which to save the sample & results data (the study folder)
 

@@ -109,6 +109,19 @@ bh_set_options <- function(raw_regex = ".*RawData.*\\.csv",
   bh_options$id_parts <- id_parts
 }
 
+#' Find the direction of a test (compressive or tensile)
+#'
+#' Compressive is defined as -ve Load or Extension (if below crosshead)
+#' so test if the largest value (i.e. the furtherest from the start point)
+#' is greater or less than the start point.
+#' @param channel which channel to test for direction.
+#'   Defaults to Load.
+#' @return +1 if Tensile, -1 if Compressive
+
+test_dir <- function(channel) {
+  sign(channel[which.max(abs(channel))]-channel[1])
+}
+
 #' Read any headers in a RawData file
 #'
 #' RawData files can contain header rows that describe the test as
@@ -152,7 +165,7 @@ bh_read_header <- function(filename) {
                            value = as.character(blank_row))]
     # It turns out that the "Specimen label" values has quotes in the field.
     # Strip any quotes in all fields as we don't want them anywhere.
-    header[, value := str_remove_all(value, "\"")]
+    header[, value := stringr::str_remove_all(value, "\"")]
   } else {
     # If there was no header make one with just the blank_row info.
     header <- data.table::data.table(type  = "information",
@@ -288,16 +301,29 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 
   # Is this a Study, Sample or Specimen?
   # We don't really care, we just need to know what variables to group by
-  # to get indiviual specimens to label
-  id_cols <- c("sample_ID","specimen_ID")
-  cols <- names(study)[names(study) %chin% id_cols]
+  # to get indiviual specimens to label. Are any of the possible ID cols
+  # in the study column names?
+  # If there are multiple possibilities, pick the first one
+  possible_id_cols <- c("testID", "sample_ID","specimen_ID")
+  id_col <-  possible_id_cols[possible_id_cols %chin% names(study)][1]
 
+  if (is.na(id_col)) {
+    stop("couldn't find an ID column in ", names(study))
+  }
+
+  # Check the directions as this only works on normalised studies
+  # i.e. increasing away from start point.
+  directions <- study[, test_dir(Load), by=testID]$V1
+  if (any(directions<0)) {
+    stop("Can only label cycles in +ve going tests.\n",
+         "\tConsder using bh_invert().\n")
+  }
   study[, peaks := robust_peaks(get(channel), span),
-        by=specimen_ID]
+        by = id_col]
   # Need to create peaks above first so that it can be referenced here
   study[, `:=`(cycle = cycles_from_peaks(peaks),
                seg   = segs_from_peaks(peaks)),
-        by=specimen_ID]
+        by = id_col]
 
   return(study)
 }
@@ -311,14 +337,14 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 #'   Each specimen has a unique ID in column testID, the same as \code{headers}.
 #' @export bh_read_study
 
-bh_read_study <- function(filenames) {
+bh_read_study <- function(files) {
   # start with a data.table holding the pathnames of each file
   SH <- data.table::data.table(pathname = files)
   # read the headers
-  SH[, bh_read_header(pathname), by=pathname]
+  SH <- SH[, bh_read_header(pathname), by=pathname]
   # make a unique ID number per pathname
   SH[, testID := .GRP, by = pathname]
-  setkey(SH, testID)
+  data.table::setkey(SH, testID)
   # read the data
   #SD <- SH[, bh_read_raw(pathname), by="pathname,testID"]
   blank <- function(SH, ID) {
@@ -360,8 +386,10 @@ id_parts <- c("filename", "sample", "specimen")
 
 bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
 
-  col_names <- names(fread(filename, blank.lines.skip = TRUE,
-                        skip = blank_row, nrows = 1))
+  col_names <- names(data.table::fread(filename,
+                                       blank.lines.skip = TRUE,
+                                       skip = blank_row,
+                                       nrows = 1))
   select_cols <- seq_along(col_names)
 
   if (min_results) {
@@ -376,9 +404,11 @@ bh_read_data_1 <- function(filename, blank_row = 0, min_results = FALSE) {
   # there are two rows of header (var name then units)
   # so the actual data starts 3 rows below the blank line/start of file
   first_data_row <- blank_row + 3
-  data <- fread(filename, blank.lines.skip = TRUE,
-                skip = first_data_row, select = select_cols)
-  setnames(data, col_names)
+  data <- data.table::fread(filename,
+                            blank.lines.skip = TRUE,
+                            skip = first_data_row,
+                            select = select_cols)
+  data.table::setnames(data, col_names)
   return(data)
 }
 
@@ -410,8 +440,10 @@ bh_min_cols <- c("Time", "Extension", "Load")
 bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 
   col_names <- names(
-    fread(filename, blank.lines.skip = TRUE,
-          skip = blank_row, nrows = 1)
+    data.table::fread(filename,
+                      blank.lines.skip = TRUE,
+                      skip = blank_row,
+                      nrows = 1)
   )
   use_col_nums <- seq_along(col_names) # start with all columns
 
@@ -436,9 +468,11 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
   # there are two rows of header (var name then units)
   # so the actual data starts 3 rows below the blank line/start of file
   first_data_row <- blank_row + 3
-  data <- fread(filename, blank.lines.skip = TRUE,
-                skip = first_data_row, select = use_col_nums)
-  setnames(data, col_names)
+  data <- data.table::fread(filename,
+                            blank.lines.skip = TRUE,
+                            skip = first_data_row,
+                            select = use_col_nums)
+  data.table::setnames(data, col_names)
   return(data)
 }
 
@@ -476,7 +510,7 @@ bh_find_specimens <- function(study_root, raw_regex = ".*RawData.*\\.csv") {
   samples <- stats::na.omit(samples) # drop non-matched results files
   # name the parts extracted by the identifier regex
   # (plus the filename which str_match returns first)
-  setnames(samples, id_parts)
+  data.table::setnames(samples, id_parts)
 
   # make a unique ID (sample.specimen) for each result
   samples[, ID := paste(sample, specimen, sep = ".")]
@@ -504,7 +538,7 @@ bh_get_headers <- function(samples) {
   headers <- samples[, bh_read_header(filename), by = filename]
   # will be getting info by filename, so set that as the key
   # also set "var", so can index by headers[J(filename, "blank_row"),]
-  setkey(headers, filename, var)
+  data.table::setkey(headers, filename, var)
   # it turns out that the "Specimen label" values has quotes in the field
   # strip any quotes as we don't want them anywhere
   headers[, value := str_remove_all(value, "\"")]
@@ -577,16 +611,39 @@ bh_label_samples <- function(samples, headers) {
 #' not in every test, so this function inverts \code{Load} and \code{Extension} so that every
 #' test will be the same way up (i.e. move from low to high extension and low to high load).
 #'
-#' @param sample_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
+#' @param study_data A \code{data.table} containing at least columns for \code{Load} and \code{Extension}.
 #' @return The same \code{data.table} with \code{ -1.0 * Load} and \code{-1.0 * Extension}
 #' @import data.table
 #' @export bh_invert_compressive
 
-bh_invert_compressive <- function(sample_data) {
+bh_invert <- function(study_data) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Extension <- Load <- NULL
 
-  sample_data[, `:=`(Extension = -Extension, Load = -Load)]
+  study_data[, `:=`(Extension = -Extension, Load = -Load)]
+}
+
+#' Make all tests positive going
+#'
+#' Compression is defined as negative, so compressive tests have negative Load and Extension.
+#' Bluehill provides \code{Compressive Load} and \code{Compressive Extension}, but these are
+#' not in every test, so this function checks if \code{Load} is going negative
+#' (i.e. a compressive test) and if so inverts \code{Load} and \code{Extension} so
+#' that the test will move from low to high extension and low to high load.
+#'
+#' @param study_data A \code{data.table} containing at least columns \code{Load} and \code{Extension}.
+#' @return The same \code{data.table} with \code{Load} and \code{Extension} always going from low to high
+#' @import data.table
+#' @export bh_normalise
+
+bh_normalise <- function(study_data) {
+  # horrible hack to avoid R CMD Check complaining about no visible binding
+  # to column names
+  Extension <- Load <- testID <- NULL
+
+  compressive <- study_data[, test_dir(Load), by=testID][V1 == -1, ]
+  datea.table::setkey(compressive, testID)
+  study_data[testID %in% compressive$testID,  `:=`(Extension = -Extension, Load = -Load)]
 }
 
 #' Slack Correction

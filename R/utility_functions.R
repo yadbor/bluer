@@ -162,7 +162,7 @@ slope_auto <- function(DT, formula) {
 #' @import data.table
 #' @export trim_slack
 
-trim_slack <- function(DT, formula, lo = 0.02, hi = 0.08) {
+trim_slack <- function(DT, formula, lo = 0.02, hi = 1.0) {
   # horrible hack to avoid R CMD Check complaining about no visible binding
   Time <- NULL
 
@@ -176,14 +176,18 @@ trim_slack <- function(DT, formula, lo = 0.02, hi = 0.08) {
                  }
                ]
 
-  fit <- DT[, lm_simple(formula, .SD[get(y) %between% limits[, c(lo, hi)]])]
-
+#  fit <- DT[, lm_simple(formula, .SD[get(y) %between% limits[, c(lo, hi)]])]
+  fit <- DT[, slope_auto(.SD[get(y) %between% limits[, c(lo, hi)]], formula)]
   x_int <- -(fit$int/fit$slope)
   x_max <- DT[, get(x)[which.max(get(y))]]
 
+  print(fit);
+  print(x_int); print(x_max);
+
   trimmed <- DT[get(x) %between% c(x_int, x_max), ]
-  trimmed[, x := get(x) - get(x)[1]]
+  trimmed[, x := get(x) - x_int] # x intercept is start real of test
   if ("Time" %in% names(DT)) {
     trimmed[, Time:= Time-Time[1]]
   }
+  return(trimmed)
 }

@@ -3,9 +3,15 @@ title: "Make _bluer_ great again for the first time"
 author: "Robert Day"
 date: "4/24/2019"
 output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Sending Messages With Gmailr}
+  %\usepackage[utf8]{inputenc}
 ---
 
-```{r setup, include=TRUE}
+
+```r
 knitr::opts_chunk$set(echo = FALSE)
 ```
 

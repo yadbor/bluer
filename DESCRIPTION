@@ -1,7 +1,7 @@
 Package: bluer
 Type: Package
 Title: Tools to Analyse Instron BlueHill 2.0 RawData Files
-Version: 0.0.0.9000
+Version: 0.0.0.9004
 Authors@R: c(
     person(given = "Robert",
            family = "Day",
