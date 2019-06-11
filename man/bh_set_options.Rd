@@ -4,7 +4,7 @@
 \alias{bh_set_options}
 \title{Set __bluer__ options}
 \usage{
-bh_set_options(raw_regex = ".*RawData.*\\\\.csv", max_header = 100,
+bh_set_options(raw_regex = ".*RawData.*\\\\.csv$", max_header = 100,
   min_columns = c("Time", "Extension", "Load"),
   id_regex = file.path(".*",
   "(.+).is_.+_RawData.*Specimen_RawData[\\\\_\\\\.](\\\\d+)\\\\.csv"),

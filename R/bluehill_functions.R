@@ -101,7 +101,7 @@ bh_options <- list(raw_regex = ".*RawData.*\\.csv", # what a raw data filename l
 #' @export bh_set_options
 #'
 
-bh_set_options <- function(raw_regex = ".*RawData.*\\.csv",
+bh_set_options <- function(raw_regex = ".*RawData.*\\.csv$",
                            max_header = 100,
                            min_columns = c("Time", "Extension", "Load"),
                            id_regex = file.path(".*",
@@ -336,7 +336,9 @@ bh_label_cycles <- function(study, channel = "Extension", span = 5) {
 #' @param files a list of file names/paths to read into the study.
 #' @return a list containing two \code{data.table}s
 #'   \code{headers} holding any headers, indexed by testID and
-#'   \code{data}  containing all the data for all of the files specified.
+#'   \code{data}  containing the data rows for all of the files specified.
+#'     Only returns \code{bh_options$min_columns} as all tests need
+#'     to have the same columns to be collected into a table.
 #'   Each specimen has a unique ID in column testID, the same as \code{headers}.
 #' @export bh_read_study
 
@@ -358,7 +360,8 @@ bh_read_study <- function(files) {
     var <- value  <- NULL
     SH[testID == ID & var == "blank_row", as.integer(value)]
   }
-  SD <- SH[, bh_read_data(pathname, blank_row = blank(SH, testID)),
+  SD <- SH[, bh_read_data(pathname, blank_row = blank(SH, testID),
+                          select_cols = bh_options$min_columns),
            by="pathname,testID"]
   # fortify data with test labels taken from headers, if any exist
   SD <- SD[SH[var == "Specimen label", list(label=value,testID)], on="testID"]
@@ -446,6 +449,35 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 #' If only a sub-set of the sample files are needed, supply a regex to select just those.
 #' for example, if there are several samples under study.root and we only want those for "bone",
 #' use something like
+#'   bh_find_tests(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
+#' Or better, gather all the file names and filter the returned list.
+#'
+#' @param study_root the path where to start searching for specimen RawData files.
+#' @param raw_regex defines what files to read. Defaults to all RawData files.
+#' @return A list with the full path name to each specimen file under study_root.
+#' @export bh_find_tests
+
+bh_find_tests <- function(study_root, raw_regex = "") {
+  # use the default if no regex specified
+  if (raw_regex == "") {
+    raw_regex <- bh_options$raw_regex
+  }
+  # harvest all the names that match,
+  # returning the full path to ensure they are unique
+  files <- list.files(path = study_root, pattern = raw_regex,
+                      recursive = TRUE, full.names = TRUE,
+                      ignore.case = TRUE)
+  return(files)
+}
+
+
+#' Find RawData files
+#'
+#' Starting from \code{study_root}, grab the names of everything that looks like an Instron
+#' specimen as defined by \code{raw_regex}. The default is all RawData files under \code{study_root}.
+#' If only a sub-set of the sample files are needed, supply a regex to select just those.
+#' for example, if there are several samples under study.root and we only want those for "bone",
+#' use something like
 #'   bh_read_specimens(study_root, raw_regex = ".*bone.*RawData.*\\.csv")
 #' Or better, gather all the file names and filter the returned data.table:
 #'   bh_read_specimens(study_root)[sample %like% "bone", ]
@@ -454,7 +486,7 @@ bh_read_data <- function(filename, blank_row = 0, select_cols = NULL) {
 #'
 #' @param study_root the path where to start searching for specimen RawData files.
 #' @param raw_regex defines what files to read. Defaults to all RawData files.
-#' @return A \code{data.table} with the full path name to each specimen file
+#' @return A list with the full path name to each specimen file
 #'   (which should be unique) and extracted sample and specimen identifiers.
 #' @import data.table
 #' @import stringr
