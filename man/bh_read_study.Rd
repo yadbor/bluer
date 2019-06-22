@@ -13,7 +13,9 @@ bh_read_study(files)
 \value{
 a list containing two \code{data.table}s
   \code{headers} holding any headers, indexed by testID and
-  \code{data}  containing all the data for all of the files specified.
+  \code{data}  containing the data rows for all of the files specified.
+    Only returns \code{bh_options$min_columns} as all tests need
+    to have the same columns to be collected into a table.
   Each specimen has a unique ID in column testID, the same as \code{headers}.
 }
 \description{
