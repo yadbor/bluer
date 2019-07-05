@@ -82,9 +82,10 @@ segs_from_peaks <- function(peaks) {
 #'   both padded to the length of the original series
 #' @export label_cycles
 
-label_cycles <- function(series, span = 3) {
+label_cycles <- function(series, span = 5) {
   # find the peaks (and their direction -1, 0, +1)
-  peaks <- peaksign2(series, span, do.pad = TRUE)
+  #peaks <- peaksign2(series, span, do.pad = TRUE)
+  peaks <- robust_peaks(series, span)
   # add cycle & seg columns
   cycle <- cycles_from_peaks(peaks)
   seg   <- segs_from_peaks(peaks)
