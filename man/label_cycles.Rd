@@ -4,7 +4,7 @@
 \alias{label_cycles}
 \title{Label cycles & segments}
 \usage{
-label_cycles(series, span = 3)
+label_cycles(series, span = 5)
 }
 \arguments{
 \item{series}{the list/vector of data to search for peaks.}

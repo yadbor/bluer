@@ -20,19 +20,19 @@ A vector of (-1 / 0 / 1) if series[i] is ( trough / "normal" / peak ).
 }
 \description{
 My version, starting from Brian Ripley's and informed by all the others.
-  The previous version found peaks & toughs, but could get false hits
+  The previous versions found peaks & toughs, but could get false hits
   when there was a flat run of the same value. This is not uncommon in
   testing data, particularly at low speeds and high data sampling rates,
   where the crosshead can pause at the top or bottom of travel and generate
   several data points all at the same load/extension.
 }
 \details{
-We solve this by recognising that the starting poing must be a trough
+We solve this by recognising that the starting point must be a trough
   (as we are moving away from start towards maximum) and that the peaks
   and troughs must come in strict succession. That is, each peak must be
   followed by a trough, and so on. Any additional peaks/troughs are false.
 
 This version only works with data that increase away from the start point.
   That means that compressive tests, where the absolute Load & Extension go
-  negative from start, must be inverted before testing for peaks.
+  negative from the start point, must be inverted before testing for peaks.
 }
